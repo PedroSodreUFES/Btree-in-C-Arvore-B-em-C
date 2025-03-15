@@ -1,3 +1,5 @@
 # Trabalho 2 - TBO
-> Pedro Sodré, Arthur e Misael.
----
+### Especificações
+> Tarefa: Implementação de uma árvore B de ordem N que recebe dados do tipo inteiro
+> Arthur, Misael e Pedro Sodré.
+> Linguagem C
