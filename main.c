@@ -49,7 +49,7 @@ int main(int argc, char **argv)
     fscanf(input, "%d%*[^0-9.]", &ordem_da_arvore);
     fscanf(input, "%d%*[^IBR]", &numero_de_comandos);
 
-    tArvore *primeiro = criaArvoreVazia(ordem_da_arvore);
+    tArvore *primeiro = criaArvore(ordem_da_arvore);
 
     // processa os comandos
     char comando;
