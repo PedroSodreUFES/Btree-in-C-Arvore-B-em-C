@@ -1,7 +1,7 @@
 #ifndef ARVORE_H
 #define ARVORE_H
 
-typedef struct arvore tArvore;
+typedef struct __bTree BTree;
 
 tArvore *criaArvore(int ordem, int chave, int dado);
 

@@ -2,12 +2,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-struct arvore{
+typedef struct BTreeNode {
     int *chaves, chave, numero_de_filhos, ordem;
-    struct arvore **filhos, *pai;
+    struct BTreeNode **filhos, *pai;
+} BTreeNode;
+
+struct __bTree{
+    BTreeNode *raiz;
+    int ordem; // Ordem da árvore B (número máximo de filhos)
 };
 
-tArvore *criaArvoreVazia(int ordem){
+BTree *criaArvoreVazia(int ordem){
     return NULL;
 }
 
@@ -20,8 +25,8 @@ tArvore *criaArvoreVazia(int ordem){
 
     @return A arvore a alocada.
 */
-tArvore *criaArvore(int ordem, int chave, int dado){
-    tArvore *a = malloc(1*sizeof(tArvore));
+BTree *criaArvore(int ordem, int chave, int dado){
+    BTree *a = malloc(1*sizeof(BTree));
     a->ordem = ordem;
     a->numero_de_filhos = 0;
     a->chave = chave;
@@ -40,7 +45,7 @@ tArvore *criaArvore(int ordem, int chave, int dado){
 
     @return A nova árvore balanceada.
 */
-tArvore *insereArvore(tArvore *raiz, int chave, int dado){
+BTree *insereArvore(BTree *raiz, int chave, int dado){
     return NULL;
 }
 
@@ -52,7 +57,7 @@ tArvore *insereArvore(tArvore *raiz, int chave, int dado){
 
     @return O nó procurado ou NULL em caso da inexistência do nó na árvore.
 */
-tArvore *retiraArvore(tArvore *raiz, int chave){
+BTree *retiraArvore(BTree *raiz, int chave){
     return NULL;
 }
 
@@ -63,7 +68,7 @@ tArvore *retiraArvore(tArvore *raiz, int chave){
     @param raiz Nó raiz.
     @param chave Chave do dado buscado.
 */
-void buscaArvore(tArvore *raiz, int chave){
+void buscaArvore(BTree *raiz, int chave){
 
 }
 
@@ -72,7 +77,7 @@ void buscaArvore(tArvore *raiz, int chave){
 
     @param raiz O nó raiz
 */
-void printaResumo(tArvore *raiz){
+void printaResumo(BTree *raiz){
 
 }
 
