@@ -3,6 +3,6 @@
 
 typedef struct no tNo;
 
-tNo *criaNo()
+tNo *criaNo();
 
 #endif
