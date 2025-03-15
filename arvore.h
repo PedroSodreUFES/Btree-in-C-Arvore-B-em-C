@@ -3,17 +3,17 @@
 
 typedef struct __arvoreB ArvoreB;
 
-tArvore *criaArvore(int ordem, int chave, int dado);
+ArvoreB *criaArvore(int ordem, int chave, int dado);
 
-tArvore *criaArvoreVazia(int ordem);
+ArvoreB *criaArvoreVazia(int ordem);
 
-tArvore *insereArvore(tArvore *raiz, int chave, int dado);
+ArvoreB *insereArvore(ArvoreB *raiz, int chave, int dado);
 
-tArvore *retiraArvore(tArvore *raiz, int chave);
+ArvoreB *retiraArvore(ArvoreB *raiz, int chave);
 
-void buscaArvore(tArvore *raiz, int chave);
+void buscaArvore(ArvoreB *raiz, int chave);
 
-void printaResumo(tArvore *raiz);
+void printaResumo(ArvoreB *raiz);
 
 #endif
 #ifndef ARVORE_H
@@ -21,18 +21,18 @@ void printaResumo(tArvore *raiz);
 
 #include "no.h"
 
-typedef struct arvore tArvore;
+typedef struct arvore ArvoreB;
 
-tArvore *criaArvore(int ordem);
+ArvoreB *criaArvore(int ordem);
 
-tArvore *criaArvoreVazia(int ordem);
+ArvoreB *criaArvoreVazia(int ordem);
 
-tArvore *insereArvore(tArvore *raiz, int chave, int dado);
+ArvoreB *insereArvore(ArvoreB *raiz, int chave, int dado);
 
-tNo *retiraArvore(tArvore *raiz, int chave);
+tNo *retiraArvore(ArvoreB *raiz, int chave);
 
-void buscaArvore(tArvore *raiz, int chave);
+void buscaArvore(ArvoreB *raiz, int chave);
 
-void printaResumo(tArvore *raiz);
+void printaResumo(ArvoreB *raiz);
 
 #endif

@@ -2,12 +2,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+typedef struct ChaveRegistro {
+    int chave;   // Valor da chave
+    int registro; // Valor do conteúdo associado à chave
+} ChaveRegistro;
+
 typedef struct No {
-    int *chaves;              // Array de chaves armazenadas no nó (deve conter até ordem - 1 chaves)
+    ChaveRegistro* chaves_registro;            // Array de chaves armazenadas no nó (deve conter até ordem - 1 chaves)
     struct No **filhos;       // Ponteiros para os filhos
     int numero_chaves;     // Número atual de chaves no nó
     struct No *pai;           // Ponteiro para o nó pai
-    int folha;             // 1 = folha. 0 = não folha (facilita as operações)
+    int eh_folha;             // 1 = folha. 0 = não folha (facilita as operações)
 } No;
 
 struct __arvoreB{
@@ -22,22 +27,6 @@ ArvoreB *criaArvoreB(int ordem){
     return aB;
 }
 
-/*
-    @brief Aloca um novo nó.
-
-    @param ordem Ordem da árvore B.
-    @param chave Chave do valor procurado.
-    @param dado Dado contido naquele nó.
-
-    @return A arvore a alocada.
-*/
-ArvoreB *criaArvore(int ordem, int chave, int dado){
-    ArvoreB *a = malloc(1*sizeof(ArvoreB));
-    a->ordem = ordem;
-    a->numero_de_chaves_armazenadas = 0;
-    a->raiz = NULL;
-    return a;
-}
 
 /*
     @brief Insere na Árvore um novo nó. OBS: Em caso de chave repetida, não insere.
