@@ -2,18 +2,24 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-typedef struct BTreeNode {
-    int *chaves, chave, numero_de_filhos, ordem;
-    struct BTreeNode **filhos, *pai;
-} BTreeNode;
+typedef struct No {
+    int *chaves;              // Array de chaves armazenadas no nó (deve conter até ordem - 1 chaves)
+    struct No **filhos;       // Ponteiros para os filhos
+    int numero_chaves;     // Número atual de chaves no nó
+    struct No *pai;           // Ponteiro para o nó pai
+    int folha;             // 1 = folha. 0 = não folha (facilita as operações)
+} No;
 
-struct __bTree{
-    BTreeNode *raiz;
+struct __arvoreB{
+    No *raiz;
     int ordem; // Ordem da árvore B (número máximo de filhos)
 };
 
-BTree *criaArvoreVazia(int ordem){
-    return NULL;
+ArvoreB *criaArvoreB(int ordem){
+    ArvoreB *aB = malloc(sizeof(ArvoreB));
+    aB->ordem = ordem;
+    aB->raiz = NULL;
+    return aB;
 }
 
 /*
@@ -25,8 +31,8 @@ BTree *criaArvoreVazia(int ordem){
 
     @return A arvore a alocada.
 */
-BTree *criaArvore(int ordem, int chave, int dado){
-    BTree *a = malloc(1*sizeof(BTree));
+ArvoreB *criaArvore(int ordem, int chave, int dado){
+    ArvoreB *a = malloc(1*sizeof(ArvoreB));
     a->ordem = ordem;
     a->numero_de_chaves_armazenadas = 0;
     a->raiz = NULL;
@@ -42,7 +48,7 @@ BTree *criaArvore(int ordem, int chave, int dado){
 
     @return A nova árvore balanceada.
 */
-BTree *insereArvore(BTree *raiz, int chave, int dado){
+ArvoreB *insereArvore(ArvoreB *raiz, int chave, int dado){
     return NULL;
 }
 
@@ -54,7 +60,7 @@ BTree *insereArvore(BTree *raiz, int chave, int dado){
 
     @return O nó procurado ou NULL em caso da inexistência do nó na árvore.
 */
-BTree *retiraArvore(BTree *raiz, int chave){
+ArvoreB *retiraArvore(ArvoreB *raiz, int chave){
     return NULL;
 }
 
@@ -65,7 +71,7 @@ BTree *retiraArvore(BTree *raiz, int chave){
     @param raiz Nó raiz.
     @param chave Chave do dado buscado.
 */
-void buscaArvore(BTree *raiz, int chave){
+void buscaArvore(ArvoreB *raiz, int chave){
 
 }
 
@@ -74,7 +80,7 @@ void buscaArvore(BTree *raiz, int chave){
 
     @param raiz O nó raiz
 */
-void printaResumo(BTree *raiz){
+void printaResumo(ArvoreB *raiz){
 
 }
 
