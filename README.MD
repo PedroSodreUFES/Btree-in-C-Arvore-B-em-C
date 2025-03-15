@@ -1,3 +1,5 @@
 # Trabalho 2 - TBO
-> Pedro Sodré, Arthur e Misael.
----
+### Detalhes
+> Arthur, Misael e Pedro Sodré
+> Linguagem C
+> Implementação de Árvores B
