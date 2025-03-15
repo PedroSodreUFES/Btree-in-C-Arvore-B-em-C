@@ -28,11 +28,8 @@ BTree *criaArvoreVazia(int ordem){
 BTree *criaArvore(int ordem, int chave, int dado){
     BTree *a = malloc(1*sizeof(BTree));
     a->ordem = ordem;
-    a->numero_de_filhos = 0;
-    a->chave = chave;
-    a->chaves = NULL;
-    a->filhos = NULL;
-    a->pai = NULL;
+    a->numero_de_chaves_armazenadas = 0;
+    a->raiz = NULL;
     return a;
 }
 
