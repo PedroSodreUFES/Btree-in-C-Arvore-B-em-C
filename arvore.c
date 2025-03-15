@@ -3,8 +3,8 @@
 #include <stdlib.h>
 
 struct arvore{
-    int *chaves, chave, numero_de_filhos, ordem;
-    struct arvore **filhos, *pai;
+    int ordem, numero_de_chaves_armazenadas;
+    struct No *raiz;
 };
 
 tArvore *criaArvoreVazia(int ordem){
@@ -20,14 +20,11 @@ tArvore *criaArvoreVazia(int ordem){
 
     @return A arvore a alocada.
 */
-tArvore *criaArvore(int ordem, int chave, int dado){
+tArvore *criaArvore(int ordem){
     tArvore *a = malloc(1*sizeof(tArvore));
     a->ordem = ordem;
-    a->numero_de_filhos = 0;
-    a->chave = chave;
-    a->chaves = NULL;
-    a->filhos = NULL;
-    a->pai = NULL;
+    a->numero_de_chaves_armazenadas = 0;
+    a->raiz = NULL;
     return a;
 }
 
