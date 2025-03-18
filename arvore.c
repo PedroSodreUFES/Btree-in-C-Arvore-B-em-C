@@ -18,15 +18,45 @@ typedef struct No {
 struct __arvoreB{
     No *raiz;
     int ordem; // Ordem da árvore B (número máximo de filhos)
+    int tam_byte_node; // Tamanho em bytes de um nó
+    FILE* arq_binario; // Arquivo binário que armazena a árvore
 };
 
 ArvoreB *criaArvoreB(int ordem){
     ArvoreB *aB = malloc(sizeof(ArvoreB));
     aB->ordem = ordem;
     aB->raiz = NULL;
+    aB->tam_byte_node = sizeof(No);
+    aB->arq_binario = NULL;
     return aB;
 }
 
+static No* criaNo(int ordem){
+    No *novo_no = (No*)malloc(sizeof(No));
+    novo_no->chaves_registro = (ChaveRegistro*)malloc((ordem - 1) * sizeof(ChaveRegistro));
+    novo_no->filhos = (No**)malloc(ordem * sizeof(No*));
+    novo_no->numero_chaves = 0;
+    novo_no->pai = NULL;
+    novo_no->eh_folha = 1;
+    for (int i = 0; i < ordem; i++) {
+        novo_no->filhos[i] = NULL;
+    }
+    return novo_no;
+}
+
+static void insereNo (No *node, ChaveRegistro chave) {
+    int i = node->numero_chaves - 1;
+    while (i >= 0 && chave.chave < node->chaves_registro[i].chave) {
+        node->chaves_registro[i + 1] = node->chaves_registro[i];
+        i--;
+    }
+    int pos = i + 1;
+    node->chaves_registro[pos] = chave;
+    node->numero_chaves++;
+}
+
+static void divideNo (ArvoreB* arvore, No* no) {
+}
 
 /*
     @brief Insere na Árvore um novo nó. OBS: Em caso de chave repetida, não insere.
@@ -37,8 +67,41 @@ ArvoreB *criaArvoreB(int ordem){
 
     @return A nova árvore balanceada.
 */
-ArvoreB *insereArvore(ArvoreB *raiz, int chave, int dado){
-    return NULL;
+void insereArvore(ArvoreB *aB, int chave, int dado){
+    ChaveRegistro chave_registro;
+    chave_registro.chave = chave;
+    chave_registro.registro = dado;
+
+    if (aB->raiz == NULL){
+        aB->raiz = criaNo(aB->ordem);
+        aB->raiz->chaves_registro[0] = chave_registro;
+        aB->raiz->numero_chaves = 1;
+        //aB->arq_binario = ???
+        return;
+    }
+
+    No* no_atual = aB->raiz;
+
+    while (!no_atual->eh_folha) { // Inserido apenas em nós folhas
+        int i = 0;
+        while ( (i < no_atual->numero_chaves) && (chave_registro.chave > no_atual->chaves_registro[i].chave) ) i++;
+
+        No *filho = no_atual->filhos[i];
+        if (filho->numero_chaves == aB->ordem - 1) { // Limite de chaves de um nó atingido
+            divideNo (aB, filho);
+
+            if (chave_registro.chave > no_atual->chaves_registro[i].chave) i++; // Como uma nova chave foi inserida, é necessário verificar atualizar o índice i
+            filho = no_atual->filhos[i];
+        }
+        no_atual = filho;
+    }
+
+    insereNo (no_atual, chave_registro);
+    if (no_atual->numero_chaves == aB->ordem) { // Limite de ordem - 1 chaves atingido
+        divideNo (aB, no_atual);
+    }
+
+
 }
 
 /*
