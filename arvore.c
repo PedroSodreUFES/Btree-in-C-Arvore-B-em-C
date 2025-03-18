@@ -29,6 +29,7 @@ struct __arvoreB{
 
 /*------------------------ FUNÇÕES NÓ ------------------------*/
 
+// Não cria no binário (talvez tenha que criar)
 static No* criaNo(int ordem){
     No *novo_no = (No*)malloc(sizeof(No));
     novo_no->chaves_registro = (ChaveRegistro*)malloc((ordem - 1) * sizeof(ChaveRegistro));
@@ -39,6 +40,14 @@ static No* criaNo(int ordem){
         novo_no->filhos[i] = -1; // Inicializa com -1
     }
     return novo_no;
+}
+
+// Retorna um nó a partir de sua posição no arquivo binário (NAO SEI SE TA CERTO)
+static No* retornaNo(ArvoreB *arvore, int posicao){
+    No *no = (No*)malloc(sizeof(No));
+    fseek(arvore->arq_binario, posicao * arvore->tam_byte_node, SEEK_SET); // SEEK_SET: referência = início do arquivo
+    fread(no, arvore->tam_byte_node, 1, arvore->arq_binario);
+    return no;
 }
 
 // Insere a chave no nó de forma ordenada (mantendo a ordem decrescente) e atualiza o número de chaves
@@ -90,6 +99,8 @@ void insereArvore(ArvoreB *aB, int chave, int dado){
     ChaveRegistro chave_registro;
     chave_registro.chave = chave;
     chave_registro.registro = dado;
+
+    // aB->arq_binario = fopen("arvore.bin", "wb"); // FALARAM PARA CRIAR APENAS SE FOSSE A PRIMEIRA INSERCAO
 
     if (aB->raiz == NULL){
         aB->raiz = criaNo(aB->ordem);
