@@ -44,6 +44,12 @@ static No* criaNo(int ordem){
     return novo_no;
 }
 
+/*
+    @brief Insere uma chave em um nó de forma ordenada
+
+    @param node Nó a ser inserido
+    @param chave Chave a ser inserida
+*/
 static void insereNo (No *node, ChaveRegistro chave) {
     int i = node->numero_chaves - 1;
     while (i >= 0 && chave.chave < node->chaves_registro[i].chave) {
@@ -55,7 +61,22 @@ static void insereNo (No *node, ChaveRegistro chave) {
     node->numero_chaves++;
 }
 
+
 static void divideNo (ArvoreB* arvore, No* no) {
+}
+
+/*
+    @brief Percorre um nó e retorna a posição da chave a ser inserida (apenas auxiliar)
+
+    @param no Nó a ser percorrido
+    @param chave Chave a ser inserida
+
+    @return A posição da chave a ser inserida
+*/
+static int percorreNo (No* no, int chave) {
+    int i = 0;
+    while (i < no->numero_chaves && chave > no->chaves_registro[i].chave) i++;
+    return i; // Para uma posição antes da chave maior que a chave a ser inserida
 }
 
 /*
@@ -83,8 +104,7 @@ void insereArvore(ArvoreB *aB, int chave, int dado){
     No* no_atual = aB->raiz;
 
     while (!no_atual->eh_folha) { // Inserido apenas em nós folhas
-        int i = 0;
-        while ( (i < no_atual->numero_chaves) && (chave_registro.chave > no_atual->chaves_registro[i].chave) ) i++;
+        int i = percorreNo (no_atual, chave);
 
         No *filho = no_atual->filhos[i];
         if (filho->numero_chaves == aB->ordem - 1) { // Limite de chaves de um nó atingido
@@ -100,8 +120,6 @@ void insereArvore(ArvoreB *aB, int chave, int dado){
     if (no_atual->numero_chaves == aB->ordem) { // Limite de ordem - 1 chaves atingido
         divideNo (aB, no_atual);
     }
-
-
 }
 
 /*
@@ -112,8 +130,21 @@ void insereArvore(ArvoreB *aB, int chave, int dado){
 
     @return O nó procurado ou NULL em caso da inexistência do nó na árvore.
 */
-ArvoreB *retiraArvore(ArvoreB *raiz, int chave){
-    return NULL;
+ArvoreB *retiraArvore(ArvoreB *arvore, int chave){
+
+}
+
+int buscaArvore(ArvoreB *arvore, int chave){
+    No *no_atual = arvore->raiz;
+    while (no_atual) { // Se torna NULL para os filhos de uma folha
+        int i = percorreNo(no_atual, chave);
+        if (i < no_atual->numero_chaves && no_atual->chaves_registro[i].chave == chave)
+            return no_atual->chaves_registro[i].registro; // Encontrou
+        // if (no_atual->eh_folha) 
+        //     break;
+        no_atual = no_atual->filhos[i];
+    }
+    return -1; // Não encontrou
 }
 
 /*
