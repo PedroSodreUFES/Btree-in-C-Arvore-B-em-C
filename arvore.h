@@ -9,7 +9,7 @@ ArvoreB *criaArvoreVazia(int ordem);
 
 ArvoreB *insereArvore(ArvoreB *arvore, int chave, int dado);
 
-ArvoreB *retiraArvore(ArvoreB *arvore, int chave);
+int retiraArvore(ArvoreB *arvore, int chave); // PDF do professor não imprime nada na remoção, então é possível que possa ser void
 
 int buscaArvore(ArvoreB *arvore, int chave); //Retorna o conteúdo da chave (se não existir, retorna -1??) nao sei se terao registros negativos
 

@@ -1,55 +1,47 @@
 #include "arvore.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
+/*------------------------ STRUCTS ------------------------*/
 typedef struct ChaveRegistro {
     int chave;   // Valor da chave
     int registro; // Valor do conteúdo associado à chave
 } ChaveRegistro;
 
 typedef struct No {
-    ChaveRegistro* chaves_registro;            // Array de chaves armazenadas no nó (deve conter até ordem - 1 chaves)
-    struct No **filhos;       // Ponteiros para os filhos
-    int numero_chaves;     // Número atual de chaves no nó
-    struct No *pai;           // Ponteiro para o nó pai
-    int eh_folha;             // 1 = folha. 0 = não folha (facilita as operações)
+    ChaveRegistro* chaves_registro;  // Array de chaves armazenadas no nó (deve conter até ordem - 1 chaves)
+    int numero_chaves;  // Número atual de chaves no nó
+    bool eh_folha;  // Facilita as operações
+    bool lotado;  // Se estiver lotado e for inserido mais uma chave, é necessário dividir
+    int posicao_arq_binario;  // Índice do nó no arquivo binário (posição será calculada com índice*tam_byte_node)
+    int* filhos;  // Array de índices dos filhos no arquivo binário
 } No;
 
 struct __arvoreB{
-    No *raiz;
+    //Raiz será detectada pelo índice 0 do arquivo
     int ordem; // Ordem da árvore B (número máximo de filhos)
+    int numero_nos; // Número de nós na árvore
     int tam_byte_node; // Tamanho em bytes de um nó
     FILE* arq_binario; // Arquivo binário que armazena a árvore
 };
+/*------------------------------------------------*/
 
-ArvoreB *criaArvoreB(int ordem){
-    ArvoreB *aB = malloc(sizeof(ArvoreB));
-    aB->ordem = ordem;
-    aB->raiz = NULL;
-    aB->tam_byte_node = sizeof(No);
-    aB->arq_binario = NULL;
-    return aB;
-}
+/*------------------------ FUNÇÕES NÓ ------------------------*/
 
 static No* criaNo(int ordem){
     No *novo_no = (No*)malloc(sizeof(No));
     novo_no->chaves_registro = (ChaveRegistro*)malloc((ordem - 1) * sizeof(ChaveRegistro));
-    novo_no->filhos = (No**)malloc(ordem * sizeof(No*));
+    novo_no->filhos = (int*) malloc(ordem * sizeof(int));
     novo_no->numero_chaves = 0;
-    novo_no->pai = NULL;
-    novo_no->eh_folha = 1;
+    novo_no->eh_folha = 1; // Começa como folha e vai subindo
     for (int i = 0; i < ordem; i++) {
-        novo_no->filhos[i] = NULL;
+        novo_no->filhos[i] = -1; // Inicializa com -1
     }
     return novo_no;
 }
 
-/*
-    @brief Insere uma chave em um nó de forma ordenada
-
-    @param node Nó a ser inserido
-    @param chave Chave a ser inserida
-*/
+// Insere a chave no nó de forma ordenada (mantendo a ordem decrescente) e atualiza o número de chaves
 static void insereNo (No *node, ChaveRegistro chave) {
     int i = node->numero_chaves - 1;
     while (i >= 0 && chave.chave < node->chaves_registro[i].chave) {
@@ -61,22 +53,28 @@ static void insereNo (No *node, ChaveRegistro chave) {
     node->numero_chaves++;
 }
 
-
 static void divideNo (ArvoreB* arvore, No* no) {
 }
 
-/*
-    @brief Percorre um nó e retorna a posição da chave a ser inserida (apenas auxiliar)
-
-    @param no Nó a ser percorrido
-    @param chave Chave a ser inserida
-
-    @return A posição da chave a ser inserida
-*/
+// Retorna a posição da chave a ser inserida
 static int percorreNo (No* no, int chave) {
     int i = 0;
     while (i < no->numero_chaves && chave > no->chaves_registro[i].chave) i++;
     return i; // Para uma posição antes da chave maior que a chave a ser inserida
+}
+
+/*------------------------------------------------*/
+
+
+/*------------------------ FUNÇÕES ÁRVORE ------------------------*/
+
+ArvoreB *criaArvoreB(int ordem){
+    ArvoreB *aB = malloc(sizeof(ArvoreB));
+    aB->ordem = ordem;
+    aB->tam_byte_node = sizeof(No);
+    aB->numero_nos = 0;
+    aB->arq_binario = NULL;
+    return aB;
 }
 
 /*
@@ -125,12 +123,12 @@ void insereArvore(ArvoreB *aB, int chave, int dado){
 /*
     @brief Retira da Árvore um nó encontrado.
 
-    @param raiz Nó raiz.
+    @param arvore Árvore B.
     @param chave Chave do dado buscado.
 
-    @return O nó procurado ou NULL em caso da inexistência do nó na árvore.
+    @return O conteúdo encontrado pela chave a ser removida da árvore.
 */
-ArvoreB *retiraArvore(ArvoreB *arvore, int chave){
+int retiraArvore(ArvoreB *arvore, int chave){
 
 }
 
