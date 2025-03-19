@@ -51,7 +51,7 @@ static No* retornaNo(ArvoreB *arvore, int posicao){
 }
 
 // Insere a chave no nó de forma ordenada (mantendo a ordem decrescente) e atualiza o número de chaves
-static void insereNo (No *node, ChaveRegistro chave) {
+static void insereChaveNo (No *node, ChaveRegistro chave) {
     int i = node->numero_chaves - 1;
     while (i >= 0 && chave.chave < node->chaves_registro[i].chave) {
         node->chaves_registro[i + 1] = node->chaves_registro[i];
@@ -65,11 +65,16 @@ static void insereNo (No *node, ChaveRegistro chave) {
 static void divideNo (ArvoreB* arvore, No* no) {
 }
 
-// Retorna a posição da chave a ser inserida
+// Retorna a posição da chave a ser inserida.
 static int percorreNo (No* no, int chave) {
     int i = 0;
     while (i < no->numero_chaves && chave > no->chaves_registro[i].chave) i++;
     return i; // Para uma posição antes da chave maior que a chave a ser inserida
+}
+
+void insereNoBinario(ArvoreB *arvore, No *no){
+    fseek(arvore->arq_binario, no->posicao_arq_binario * arvore->tam_byte_node, SEEK_SET);
+    fwrite(no, arvore->tam_byte_node, 1, arvore->arq_binario);
 }
 
 /*------------------------------------------------*/
@@ -100,35 +105,35 @@ void insereArvore(ArvoreB *aB, int chave, int dado){
     chave_registro.chave = chave;
     chave_registro.registro = dado;
 
-    // aB->arq_binario = fopen("arvore.bin", "wb"); // FALARAM PARA CRIAR APENAS SE FOSSE A PRIMEIRA INSERCAO
 
-    if (aB->raiz == NULL){
-        aB->raiz = criaNo(aB->ordem);
-        aB->raiz->chaves_registro[0] = chave_registro;
-        aB->raiz->numero_chaves = 1;
-        //aB->arq_binario = ???
+    if (aB->numero_nos == 0) { // Árvore vazia
+        No *raiz = criaNo(aB->ordem);
+        insereChaveNo(raiz, chave_registro);
+        aB->numero_nos++;
+        aB->arq_binario = fopen("arvore.bin", "wb"); // Só fecha quando o programa termina
+        insereNoBinario(aB, raiz);
         return;
     }
 
-    No* no_atual = aB->raiz;
+    // No* no_atual = aB->raiz;
 
-    while (!no_atual->eh_folha) { // Inserido apenas em nós folhas
-        int i = percorreNo (no_atual, chave);
+    // while (!no_atual->eh_folha) { // Inserido apenas em nós folhas
+    //     int i = percorreNo (no_atual, chave);
 
-        No *filho = no_atual->filhos[i];
-        if (filho->numero_chaves == aB->ordem - 1) { // Limite de chaves de um nó atingido
-            divideNo (aB, filho);
+    //     No *filho = no_atual->filhos[i];
+    //     if (filho->numero_chaves == aB->ordem - 1) { // Limite de chaves de um nó atingido
+    //         divideNo (aB, filho);
 
-            if (chave_registro.chave > no_atual->chaves_registro[i].chave) i++; // Como uma nova chave foi inserida, é necessário verificar atualizar o índice i
-            filho = no_atual->filhos[i];
-        }
-        no_atual = filho;
-    }
+    //         if (chave_registro.chave > no_atual->chaves_registro[i].chave) i++; // Como uma nova chave foi inserida, é necessário verificar atualizar o índice i
+    //         filho = no_atual->filhos[i];
+    //     }
+    //     no_atual = filho;
+    // }
 
-    insereNo (no_atual, chave_registro);
-    if (no_atual->numero_chaves == aB->ordem) { // Limite de ordem - 1 chaves atingido
-        divideNo (aB, no_atual);
-    }
+    // insereNo (no_atual, chave_registro);
+    // if (no_atual->numero_chaves == aB->ordem) { // Limite de ordem - 1 chaves atingido
+    //     divideNo (aB, no_atual);
+    // }
 }
 
 /*
@@ -144,16 +149,22 @@ int retiraArvore(ArvoreB *arvore, int chave){
 }
 
 int buscaArvore(ArvoreB *arvore, int chave){
-    No *no_atual = arvore->raiz;
-    while (no_atual) { // Se torna NULL para os filhos de uma folha
-        int i = percorreNo(no_atual, chave);
-        if (i < no_atual->numero_chaves && no_atual->chaves_registro[i].chave == chave)
-            return no_atual->chaves_registro[i].registro; // Encontrou
-        // if (no_atual->eh_folha) 
-        //     break;
-        no_atual = no_atual->filhos[i];
+    No* no_atual = retornaNo(arvore, 0); // Raiz
+    int i;
+
+    while (true) { // Possível loop infinito (nao testado)
+        i = percorreNo(no_atual, chave); // Intervalo que a chave pode estar
+
+        if (no_atual->chaves_registro[i].chave == chave) // Chave encontrada
+            return no_atual->chaves_registro[i].registro;
+
+        if (no_atual->eh_folha) // Se for folha, não tem mais o que procurar
+            return -1;
+
+        no_atual = retornaNo(arvore, no_atual->filhos[i]);
     }
-    return -1; // Não encontrou
+
+    return -1; // Chave não encontrada
 }
 
 /*
