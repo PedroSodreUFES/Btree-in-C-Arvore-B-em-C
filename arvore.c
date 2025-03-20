@@ -2,107 +2,83 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <limits.h>
 
 #define MIN_CHAVES(ordem) ((ordem)/2 - 1)
 #define MAX_CHAVES(ordem) (ordem - 1)
 
 /*------------------------ STRUCTS ------------------------*/
-typedef struct ChaveRegistro {
-    int chave;   // Valor da chave
-    int registro; // Valor do conteúdo associado à chave
-} ChaveRegistro;
-
-typedef struct No {
-    ChaveRegistro* chaves_registro;  // Array de chaves armazenadas no nó (deve conter até ordem - 1 chaves)
-    int numero_chaves;  // Número atual de chaves no nó
-    char eh_folha;  // Facilita as operações
-    char lotado;  // Se estiver lotado e for inserido mais uma chave, é necessário dividir
-    int posicao_arq_binario;  // Índice do nó no arquivo binário (posição será calculada com índice*tam_byte_node)
-    int* filhos;  // Array de índices dos filhos no arquivo binário
-} No;
-
-struct __arvoreB{
-    //Raiz será detectada pelo índice 0 do arquivo
-    int ordem; // Ordem da árvore B (número máximo de filhos)
-    int numero_nos; // Número de nós na árvore
-    int tam_byte_node; // Tamanho em bytes de um nó
-    FILE* arq_binario; // Arquivo binário que armazena a árvore
+struct no
+{
+    int numero_chaves;
+    char eh_folha;
+    char lotado;
+    int posicao_arq_binario;
+    int *filhos, *chaves, *valores;
+    int pai_offset;
 };
-/*------------------------------------------------*/
 
-/*------------------------ FUNÇÕES DISCO ------------------------*/
+struct __arvoreB
+{
+    int ordem;
+    int numero_nos;
+    int tam_byte_node;
+    FILE *arq_binario;
+};
 
-// Cria e lê um nó do arquivo binário a partir de sua posição
-No* disk_read(ArvoreB* arvore, int posicao) {
-    FILE* arquivo_bin = arvore->arq_binario;
-    No* node = (No*)malloc(sizeof(No));
-    if (!node) return NULL;
-
-    fseek(arquivo_bin, posicao * arvore->tam_byte_node, SEEK_SET);
-
-    // Lê numero_chaves, eh_folha (como int), posicao_arq_binario
-    fread(&node->numero_chaves, sizeof(int), 1, arquivo_bin);
-    fread(&node->eh_folha, sizeof(char), 1, arquivo_bin);
-    fread(&node->posicao_arq_binario, sizeof(int), 1, arquivo_bin);
-
-    int ordem = arvore->ordem;
-    node->chaves_registro = (ChaveRegistro*)malloc(sizeof(ChaveRegistro) * (ordem - 1));
-    node->filhos = (int*)malloc(sizeof(int) * ordem);
-
-    fread(node->chaves_registro, sizeof(ChaveRegistro), ordem - 1, arquivo_bin);
-    fread(node->filhos, sizeof(int), ordem, arquivo_bin);
-
-    node->lotado = node->numero_chaves == MAX_CHAVES(ordem) ? '1' : '0';
-    return node;
-}
-
-// Escreve um nó no arquivo binário a partir de sua posição e libera a memória do nó
-void disk_write(ArvoreB* arvore, No* node) {
-    FILE* arquivo_bin = arvore->arq_binario;
-    fseek(arquivo_bin, node->posicao_arq_binario * arvore->tam_byte_node, SEEK_SET);
-
-    fwrite(&node->numero_chaves, sizeof(int), 1, arquivo_bin);
-    fwrite(&node->eh_folha, sizeof(char), 1, arquivo_bin);
-    fwrite(&node->posicao_arq_binario, sizeof(int), 1, arquivo_bin);
-    fwrite(node->chaves_registro, sizeof(ChaveRegistro), arvore->ordem - 1, arquivo_bin);
-    fwrite(node->filhos, sizeof(int), arvore->ordem, arquivo_bin);
-    fflush(arquivo_bin); // Força a escrita no arquivo para ocorrer imediatamente (não quando o sistema decidir -> possivelmente nao precisa)
-    liberaNo(node);
-}
-
-/*------------------------ FUNÇÕES NÓ ------------------------*/
-
-// Não cria no binário (talvez tenha que criar)
-static No* criaNo(int ordem){
-    No *novo_no = (No*)malloc(sizeof(No));
-    novo_no->chaves_registro = (ChaveRegistro*)malloc((ordem - 1) * sizeof(ChaveRegistro));
-    novo_no->filhos = (int*) malloc(ordem * sizeof(int));
-    novo_no->numero_chaves = 0;
-    novo_no->eh_folha = 1; // Começa como folha e vai subindo
-    for (int i = 0; i < ordem; i++) {
-        novo_no->filhos[i] = -1; // Inicializa com -1
+/*--------------------Nó-----------------------*/
+// cria nó
+No *criaNo(ArvoreB *arv)
+{
+    No *no = calloc(1, sizeof(No));
+    no->numero_chaves = 0;
+    no->eh_folha = '1';
+    no->lotado = '0';
+    no->pai_offset = -1;
+    no->posicao_arq_binario = arv->numero_nos;
+    arv->numero_nos++;
+    no->chaves = (int *)calloc(arv->ordem, sizeof(int));
+    no->valores = (int *)calloc((arv->ordem - 1), sizeof(int));
+    no->filhos = (int *)calloc(arv->ordem, sizeof(int));
+    for (int i = 0; i < arv->ordem; i++)
+    {
+        no->filhos[i] = INT_MAX;
+        no->chaves[i] = INT_MAX;
+        if (i < arv->ordem - 1)
+        {
+            no->valores[i] = INT_MAX;
+        }
     }
-    return novo_no;
-}
 
-// Retorna um nó a partir de sua posição no arquivo binário (NAO SEI SE TA CERTO)
-static No* retornaNo(ArvoreB *arvore, int posicao){
-    No *no = (No*)malloc(sizeof(No));
-    fseek(arvore->arq_binario, posicao * arvore->tam_byte_node, SEEK_SET); // SEEK_SET: referência = início do arquivo
-    fread(no, arvore->tam_byte_node, 1, arvore->arq_binario);
     return no;
 }
 
-// Insere a chave no nó de forma ordenada (mantendo a ordem decrescente) e atualiza o número de chaves
-static void insereChaveNo (No *node, ChaveRegistro chave) {
-    int i = node->numero_chaves - 1;
-    while (i >= 0 && chave.chave < node->chaves_registro[i].chave) {
-        node->chaves_registro[i + 1] = node->chaves_registro[i];
-        i--;
+void liberaNo(No *no)
+{
+    if (no != NULL)
+    {
+        if (no->filhos != NULL)
+            free(no->filhos);
+        if (no->chaves != NULL)
+            free(no->chaves);
+        if (no->valores != NULL)
+            free(no->valores);
+        free(no);
     }
-    int pos = i + 1;
-    node->chaves_registro[pos] = chave;
-    node->numero_chaves++;
+}
+
+
+/*--------------------Árvore-----------------------*/
+
+// cria árvore
+ArvoreB *criaArvoreB(int ordem, FILE *binario)
+{
+    ArvoreB *arv = malloc(sizeof(ArvoreB));
+    arv->arq_binario = binario;
+    arv->tam_byte_node = sizeof(No);
+    arv->ordem = ordem;
+    arv->numero_nos = 0;
+    return arv;
 }
 
 static void divideNo (ArvoreB* arvore, No* no) {
@@ -131,112 +107,192 @@ void liberaNo (No *no) {
 
 /*------------------------ FUNÇÕES ÁRVORE ------------------------*/
 
-// Inicializa a árvore B com tudo nulo
-ArvoreB *criaArvoreB(int ordem){
-    ArvoreB *aB = malloc(sizeof(ArvoreB));
-    aB->ordem = ordem;
-    aB->tam_byte_node = sizeof(No);
-    aB->numero_nos = 0;
-    aB->arq_binario = NULL;
-    return aB;
-}
-
-/*
-    @brief Insere na Árvore um novo nó. OBS: Em caso de chave repetida, não insere.
-
-    @param raiz Nó raiz.
-    @param chave Chave do dado.
-    @param dado Dado contido naquela chave.
-
-    @return A nova árvore balanceada.
-*/
-void insereArvore(ArvoreB *aB, int chave, int dado){
-    ChaveRegistro chave_registro;
-    chave_registro.chave = chave;
-    chave_registro.registro = dado;
-
-
-    if (aB->numero_nos == 0) { // Árvore vazia
-        No *raiz = criaNo(aB->ordem);
-        insereChaveNo(raiz, chave_registro);
-        aB->numero_nos++;
-        aB->arq_binario = fopen("arvore.bin", "wb"); // Só fecha quando o programa termina
-        insereNoBinario(aB, raiz);
-        return;
+ArvoreB *insereArvore(ArvoreB *sentinela, int chave, int valor)
+{
+    No *aux = disk_read(sentinela, 0);
+    // acha a folha
+    while (aux->eh_folha == '0')
+    {
+        int achou = 0;
+        for (int i = 0; i < aux->numero_chaves; i++)
+        {
+            if (chave < aux->chaves[i])
+            {
+                int offset = aux->filhos[i];
+                liberaNo(aux);
+                aux = disk_read(sentinela, offset);
+                achou = 1;
+                break;
+            }
+            else if(chave == aux->chaves[i]){
+                aux->valores[i] = valor;
+                disk_write(sentinela, aux);
+                liberaNo(aux);
+                return sentinela;
+            }
+        }
+        if (achou == 0){aux = disk_read(sentinela, aux->filhos[aux->numero_chaves]);}
     }
 
-    // No* no_atual = aB->raiz;
+    // aumenta o numero de chaves na folha
+    aux->numero_chaves++;
+    if(aux->numero_chaves == sentinela->ordem-1) aux->lotado = '1';
 
-    // while (!no_atual->eh_folha) { // Inserido apenas em nós folhas
-    //     int i = percorreNo (no_atual, chave);
+    // insere de forma ordenada na folha
+    int i = aux->numero_chaves - 2;
+    while (i >= 0 && chave < aux->chaves[i])
+    {
+        i--;
+    }
+    i++;
 
-    //     No *filho = no_atual->filhos[i];
-    //     if (filho->numero_chaves == aB->ordem - 1) { // Limite de chaves de um nó atingido
-    //         divideNo (aB, filho);
+    for (int j = aux->numero_chaves - 1; j > i; j--)
+    {
+        aux->chaves[j] = aux->chaves[j - 1];
+        aux->valores[j] = aux->valores[j - 1];
+    }
 
-    //         if (chave_registro.chave > no_atual->chaves_registro[i].chave) i++; // Como uma nova chave foi inserida, é necessário verificar atualizar o índice i
-    //         filho = no_atual->filhos[i];
-    //     }
-    //     no_atual = filho;
-    // }
+    aux->chaves[i] = chave;
+    aux->valores[i] = valor;
 
-    // insereNo (no_atual, chave_registro);
-    // if (no_atual->numero_chaves == aB->ordem) { // Limite de ordem - 1 chaves atingido
-    //     divideNo (aB, no_atual);
-    // }
-}
-
+    // escreve o nó na memoria
+    disk_write(sentinela, aux);
 /*------------------------ FUNÇÕES REMOÇÃO ------------------------*/
 /*
     @brief Retira da Árvore um nó encontrado.
 
-    @param arvore Árvore B.
-    @param chave Chave do dado buscado.
-
-    @return O conteúdo encontrado pela chave a ser removida da árvore.
-*/
-int retiraArvore(ArvoreB *arvore, int chave){
-}
-
-int buscaArvore(ArvoreB *arvore, int chave){
-    No* no_atual = retornaNo(arvore, 0); // Raiz
-    int i;
-
-    while (true) { // Possível loop infinito (nao testado)
-        i = percorreNo(no_atual, chave); // Intervalo que a chave pode estar
-
-        if (no_atual->chaves_registro[i].chave == chave) // Chave encontrada
-            return no_atual->chaves_registro[i].registro;
-
-        if (no_atual->eh_folha) // Se for folha, não tem mais o que procurar
-            return -1;
-
-        no_atual = retornaNo(arvore, no_atual->filhos[i]);
+    // se o nó estiver além da capacidade, divide ele:
+    if (aux->numero_chaves == sentinela->ordem)
+    {
+        int offset = aux->posicao_arq_binario;
+        liberaNo(aux);
+        printf("Terei de dividir\n");
+        return divideArvore(offset, sentinela);
     }
 
-    return -1; // Chave não encontrada
+    // se nao, retorna a sentinela
+    liberaNo(aux);
+    return sentinela;
 }
 
-/*
-    @brief Percorre a árvore e printa o estado final de maneira balanceada.
+ArvoreB *divideArvore(int offset, ArvoreB *sentinela)
+{
+    No *antiga_raiz = disk_read(sentinela, offset);
 
-    @param raiz O nó raiz
-*/
-void printaResumo(ArvoreB *raiz){
+    // raiz ta lotada
+    if (antiga_raiz->pai_offset== -1)
+    {
+        int i, k, contfilhos = 0;
 
+        // cria o nível acima
+        int chave_do_meio = antiga_raiz->chaves[(sentinela->ordem / 2) - 1];
+        int valor_do_meio = antiga_raiz->valores[(sentinela->ordem/2)-1];
+        No *pai = criaNo(sentinela);
+        pai->numero_chaves = 1; // isso significa que há 2 filhos também :)
+        pai->eh_folha= '0';
+
+        // cria o nivel com a segunda metade:
+        No *filhoMaior = criaNo(sentinela);
+        filhoMaior->numero_chaves = sentinela->ordem - (sentinela->ordem / 2);
+        for (i = 0, k = sentinela->ordem / 2; k < antiga_raiz->numero_chaves; k++, i++)
+        {
+            filhoMaior->chaves[i] = antiga_raiz->chaves[k];
+            filhoMaior->valores[i] = antiga_raiz->valores[k];
+            filhoMaior->filhos[i] = antiga_raiz->filhos[k];
+        }
+        filhoMaior->filhos[i] = antiga_raiz->filhos[k];
+        if(filhoMaior->filhos[0] == INT_MAX){
+            filhoMaior->eh_folha = '1';
+        }
+        else{
+            filhoMaior->eh_folha = '0';
+        }
+        filhoMaior->lotado = '0';
+        filhoMaior->pai_offset = 0;
+
+        // reajusta a raiz para ser a metade menor
+        antiga_raiz->numero_chaves = (sentinela->ordem/2) -1;
+        antiga_raiz->lotado = '0';
+        antiga_raiz->pai_offset = 0;
+        antiga_raiz->posicao_arq_binario = pai->posicao_arq_binario;
+        if(antiga_raiz->filhos[0] == INT_MAX){
+            antiga_raiz->eh_folha = '1';
+        }
+        else{
+            antiga_raiz->eh_folha = '0';
+        }
+
+        // atualiza o pai
+        pai->posicao_arq_binario=0;
+        pai->filhos[0] = antiga_raiz->posicao_arq_binario;
+        pai->filhos[1] = filhoMaior->posicao_arq_binario;
+        pai->valores[0] = valor_do_meio;
+        pai->chaves[0] = chave_do_meio;
+        pai->pai_offset = -1;
+        
+        disk_write(sentinela, pai);
+        disk_write(sentinela, antiga_raiz);
+        disk_write(sentinela, filhoMaior);
+
+        return sentinela;
+    }
+
+    // no qualquer está lotado
+    else
+    {
+
+    }
 }
 
+/*----------------DISK_READ--------------------------DISK_WRITE--------------------*/
+No *disk_read(ArvoreB *arvore, int posicao)
+{
+    FILE *arquivo_bin = arvore->arq_binario;
+    No *node = (No *)malloc(sizeof(No));
+    fseek(arquivo_bin, posicao * arvore->tam_byte_node, SEEK_SET);
+    fread(&node->numero_chaves, sizeof(int), 1, arquivo_bin);
+    fread(&node->eh_folha, sizeof(char), 1, arquivo_bin);
+    fread(&node->lotado, sizeof(char), 1, arquivo_bin);
+    fread(&node->posicao_arq_binario, sizeof(int), 1, arquivo_bin);
+    node->chaves = (int *)malloc(arvore->ordem * sizeof(int));
+    node->valores = (int *)malloc((arvore->ordem - 1) * sizeof(int));
+    node->filhos = (int *)malloc(arvore->ordem * sizeof(int));
+    fread(node->chaves, sizeof(int), arvore->ordem, arquivo_bin);
+    fread(node->valores, sizeof(int), arvore->ordem - 1, arquivo_bin);
+    fread(node->filhos, sizeof(int), arvore->ordem, arquivo_bin);
+    fread(&node->pai_offset, sizeof(int), 1, arquivo_bin);
+    return node;
+}
 
-/* -------------------------------------------------------------------------
-    NOTAS                                                                  |
-----------------------------------------------------------------------------
-    raiz = folha ou no minimo 2 filhos.                                    |
-    cada no(sem ser folha ou raiz) possui no MÍNIMO (ordem + 1) filhos.    |
-    cada no tem no máximo (2*ordem + 1) filhos.                            |
-    TODAS as folhas estão no mesmo nível.                                  |
-                                                                           |
-    Página: nome dado a um nó de uma árvore B                              |
-        |                                                                  |
-        |--> Cada página armazenad diversos registros da tabela original   |
-----------------------------------------------------------------------------
-*/
+void disk_write(ArvoreB *arvore, No *node)
+{
+    FILE *arquivo_bin = arvore->arq_binario;
+    fseek(arquivo_bin, node->posicao_arq_binario * arvore->tam_byte_node, SEEK_SET);
+    fwrite(&node->numero_chaves, sizeof(int), 1, arquivo_bin);
+    fwrite(&node->eh_folha, sizeof(char), 1, arquivo_bin);
+    fwrite(&node->lotado, sizeof(char), 1, arquivo_bin);
+    fwrite(&node->posicao_arq_binario, sizeof(int), 1, arquivo_bin);
+    fwrite(node->chaves, sizeof(int), arvore->ordem, arquivo_bin);
+    fwrite(node->valores, sizeof(int), arvore->ordem - 1, arquivo_bin);
+    fwrite(node->filhos, sizeof(int), arvore->ordem, arquivo_bin);
+    fwrite(&node->pai_offset, sizeof(int), 1, arquivo_bin);
+    fflush(arquivo_bin);
+}
+
+/*----------------------------TEST FUNCTIONS----------------------------------------*/
+int getOffset(No *no)
+{
+    return no->posicao_arq_binario;
+}
+
+char getLotado(No *no)
+{
+    return no->lotado;
+}
+
+void printaChaves(No *no){
+    for(int i=0; i< no->numero_chaves ; i++){
+        printf("%d ", no->chaves[i]);
+    }
+    printf("\n");
+}

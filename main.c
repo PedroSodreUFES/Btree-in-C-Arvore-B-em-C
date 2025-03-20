@@ -25,7 +25,8 @@ int main(int argc, char **argv)
         printf("É preciso fornecer um arquivo de entrada e outro de saída para rodar o programa!\nRode o programa no formato ./trab2 <entrada.txt> <saida.txt>\n");
         exit(1);
     }
-    FILE *input, *output;
+
+    FILE *input, *output, *binary;
 
     char *input_path = argv[1];
     char *output_path = argv[2];
@@ -44,34 +45,44 @@ int main(int argc, char **argv)
         exit(1);
     }
 
+    binary = fopen("binario.bin", "w+b");
+    if(binary == NULL){
+        printf("Arquivo binário não pode ser aberto\n");
+        exit(1);
+    }
+
     // Pega a ordem da arvore e o numero de comandos no arquivo txt
     int numero_de_comandos, ordem_da_arvore;
     fscanf(input, "%d%*[^0-9.]", &ordem_da_arvore);
     fscanf(input, "%d%*[^IBR]", &numero_de_comandos);
 
-    tArvore *primeiro = criaArvore(ordem_da_arvore);
+    ArvoreB *sentinela = criaArvoreB(ordem_da_arvore, binary);
+    No *raiz = criaNo(sentinela);
+    disk_write(sentinela, raiz);
+    liberaNo(raiz);
 
     // processa os comandos
     char comando;
     int chave, dado;
-    tArvore *aux;
+
+    // no que vai receber o que for retirado
     for(int i=0 ; i<numero_de_comandos ; i++)
     {
         fscanf(input, "%c%*c", &comando);
         if(comando == 'I')
         {
             fscanf(input,"%d, %d%*[^RBI]", &chave, &dado);
-            primeiro = insereArvore(primeiro, chave, dado);
+            sentinela = insereArvore(sentinela, chave, dado);
         }
         else if(comando == 'R')
         {
             fscanf(input,"%d%*[^RBI]", &chave);
-            aux = retiraArvore(primeiro, chave);
+            //aux = retiraArvore(sentinela, chave);
         }
         else if(comando == 'B')
         {
             fscanf(input, "%d%*[^RBI]", &chave);
-            buscaArvore(primeiro, chave);
+            //buscaArvore(sentinela, chave);
         }
         else{
             printf("Comando inválido detectado!\nO comando %c não tem uma definicao!\n", comando);
@@ -79,7 +90,10 @@ int main(int argc, char **argv)
         }
     }
 
+    free(sentinela);
     fclose(input);
     fclose(output);
+    fclose(binary);
+
     return 0;
 }
