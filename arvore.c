@@ -3,6 +3,9 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+#define MIN_CHAVES(ordem) ((ordem)/2 - 1)
+#define MAX_CHAVES(ordem) (ordem - 1)
+
 /*------------------------ STRUCTS ------------------------*/
 typedef struct ChaveRegistro {
     int chave;   // Valor da chave
@@ -29,6 +32,7 @@ struct __arvoreB{
 
 /*------------------------ FUNÇÕES DISCO ------------------------*/
 
+// Cria e lê um nó do arquivo binário a partir de sua posição
 No* disk_read(ArvoreB* arvore, int posicao) {
     FILE* arquivo_bin = arvore->arq_binario;
     No* node = (No*)malloc(sizeof(No));
@@ -48,10 +52,11 @@ No* disk_read(ArvoreB* arvore, int posicao) {
     fread(node->chaves_registro, sizeof(ChaveRegistro), ordem - 1, arquivo_bin);
     fread(node->filhos, sizeof(int), ordem, arquivo_bin);
 
-    node->lotado = node->numero_chaves == ordem - 1 ? '1' : '0';
+    node->lotado = node->numero_chaves == MAX_CHAVES(ordem) ? '1' : '0';
     return node;
 }
 
+// Escreve um nó no arquivo binário a partir de sua posição e libera a memória do nó
 void disk_write(ArvoreB* arvore, No* node) {
     FILE* arquivo_bin = arvore->arq_binario;
     fseek(arquivo_bin, node->posicao_arq_binario * arvore->tam_byte_node, SEEK_SET);
@@ -62,6 +67,7 @@ void disk_write(ArvoreB* arvore, No* node) {
     fwrite(node->chaves_registro, sizeof(ChaveRegistro), arvore->ordem - 1, arquivo_bin);
     fwrite(node->filhos, sizeof(int), arvore->ordem, arquivo_bin);
     fflush(arquivo_bin); // Força a escrita no arquivo para ocorrer imediatamente (não quando o sistema decidir -> possivelmente nao precisa)
+    liberaNo(node);
 }
 
 /*------------------------ FUNÇÕES NÓ ------------------------*/
@@ -114,11 +120,18 @@ void insereNoBinario(ArvoreB *arvore, No *no){
     fwrite(no, arvore->tam_byte_node, 1, arvore->arq_binario);
 }
 
+void liberaNo (No *no) {
+    free(no->chaves_registro);
+    free(no->filhos);
+    free(no);
+}
+
 /*------------------------------------------------*/
 
 
 /*------------------------ FUNÇÕES ÁRVORE ------------------------*/
 
+// Inicializa a árvore B com tudo nulo
 ArvoreB *criaArvoreB(int ordem){
     ArvoreB *aB = malloc(sizeof(ArvoreB));
     aB->ordem = ordem;
@@ -173,6 +186,7 @@ void insereArvore(ArvoreB *aB, int chave, int dado){
     // }
 }
 
+/*------------------------ FUNÇÕES REMOÇÃO ------------------------*/
 /*
     @brief Retira da Árvore um nó encontrado.
 
@@ -201,17 +215,6 @@ int buscaArvore(ArvoreB *arvore, int chave){
     }
 
     return -1; // Chave não encontrada
-}
-
-/*
-    @brief Imprime na tela se o nó está contido na Árvore B ou não.
-    Em caso de presença, imprime: O REGISTRO ESTA NA ARVORE!
-    Caso contrário, imprime: O REGISTRO NAO ESTA NA ARVORE! 
-    @param raiz Nó raiz.
-    @param chave Chave do dado buscado.
-*/
-void buscaArvore(ArvoreB *raiz, int chave){
-
 }
 
 /*
