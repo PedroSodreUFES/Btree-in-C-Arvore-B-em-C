@@ -12,8 +12,8 @@ typedef struct ChaveRegistro {
 typedef struct No {
     ChaveRegistro* chaves_registro;  // Array de chaves armazenadas no nó (deve conter até ordem - 1 chaves)
     int numero_chaves;  // Número atual de chaves no nó
-    bool eh_folha;  // Facilita as operações
-    bool lotado;  // Se estiver lotado e for inserido mais uma chave, é necessário dividir
+    char eh_folha;  // Facilita as operações
+    char lotado;  // Se estiver lotado e for inserido mais uma chave, é necessário dividir
     int posicao_arq_binario;  // Índice do nó no arquivo binário (posição será calculada com índice*tam_byte_node)
     int* filhos;  // Array de índices dos filhos no arquivo binário
 } No;
@@ -26,6 +26,43 @@ struct __arvoreB{
     FILE* arq_binario; // Arquivo binário que armazena a árvore
 };
 /*------------------------------------------------*/
+
+/*------------------------ FUNÇÕES DISCO ------------------------*/
+
+No* disk_read(ArvoreB* arvore, int posicao) {
+    FILE* arquivo_bin = arvore->arq_binario;
+    No* node = (No*)malloc(sizeof(No));
+    if (!node) return NULL;
+
+    fseek(arquivo_bin, posicao * arvore->tam_byte_node, SEEK_SET);
+
+    // Lê numero_chaves, eh_folha (como int), posicao_arq_binario
+    fread(&node->numero_chaves, sizeof(int), 1, arquivo_bin);
+    fread(&node->eh_folha, sizeof(char), 1, arquivo_bin);
+    fread(&node->posicao_arq_binario, sizeof(int), 1, arquivo_bin);
+
+    int ordem = arvore->ordem;
+    node->chaves_registro = (ChaveRegistro*)malloc(sizeof(ChaveRegistro) * (ordem - 1));
+    node->filhos = (int*)malloc(sizeof(int) * ordem);
+
+    fread(node->chaves_registro, sizeof(ChaveRegistro), ordem - 1, arquivo_bin);
+    fread(node->filhos, sizeof(int), ordem, arquivo_bin);
+
+    node->lotado = node->numero_chaves == ordem - 1 ? '1' : '0';
+    return node;
+}
+
+void disk_write(ArvoreB* arvore, No* node) {
+    FILE* arquivo_bin = arvore->arq_binario;
+    fseek(arquivo_bin, node->posicao_arq_binario * arvore->tam_byte_node, SEEK_SET);
+
+    fwrite(&node->numero_chaves, sizeof(int), 1, arquivo_bin);
+    fwrite(&node->eh_folha, sizeof(char), 1, arquivo_bin);
+    fwrite(&node->posicao_arq_binario, sizeof(int), 1, arquivo_bin);
+    fwrite(node->chaves_registro, sizeof(ChaveRegistro), arvore->ordem - 1, arquivo_bin);
+    fwrite(node->filhos, sizeof(int), arvore->ordem, arquivo_bin);
+    fflush(arquivo_bin); // Força a escrita no arquivo para ocorrer imediatamente (não quando o sistema decidir -> possivelmente nao precisa)
+}
 
 /*------------------------ FUNÇÕES NÓ ------------------------*/
 
@@ -145,7 +182,6 @@ void insereArvore(ArvoreB *aB, int chave, int dado){
     @return O conteúdo encontrado pela chave a ser removida da árvore.
 */
 int retiraArvore(ArvoreB *arvore, int chave){
-
 }
 
 int buscaArvore(ArvoreB *arvore, int chave){
