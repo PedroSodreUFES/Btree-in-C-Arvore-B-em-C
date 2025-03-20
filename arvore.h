@@ -1,18 +1,25 @@
 #ifndef ARVORE_H
 #define ARVORE_H
 
+#include <stdio.h>
+
 typedef struct __arvoreB ArvoreB;
 
-ArvoreB *criaArvore(int ordem, int chave, int dado);
+typedef struct no No;
 
-ArvoreB *criaArvoreVazia(int ordem);
-
+/* funcoes da arvore*/
+ArvoreB *criaArvoreB(long int ordem, FILE *binario);
 ArvoreB *insereArvore(ArvoreB *arvore, int chave, int dado);
-
 int retiraArvore(ArvoreB *arvore, int chave); // PDF do professor não imprime nada na remoção, então é possível que possa ser void
-
 int buscaArvore(ArvoreB *arvore, int chave); //Retorna o conteúdo da chave (se não existir, retorna -1??) nao sei se terao registros negativos
-
 void printaResumo(ArvoreB *arvore);
+
+/* FUNÇÕES DE NÓ*/
+No *criaNo(ArvoreB *arv);
+long int getOffset(No *no);
+
+/* FUNÇÕES DISK*/
+void disk_write(ArvoreB *arvore, No *node);
+No *disk_read(ArvoreB *arvore, long int posicao);
 
 #endif
