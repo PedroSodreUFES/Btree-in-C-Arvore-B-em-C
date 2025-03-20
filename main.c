@@ -59,13 +59,13 @@ int main(int argc, char **argv)
     ArvoreB *sentinela = criaArvoreB(ordem_da_arvore, binary);
     No *raiz = criaNo(sentinela);
     disk_write(sentinela, raiz);
+    liberaNo(raiz);
 
     // processa os comandos
     char comando;
     int chave, dado;
 
     // no que vai receber o que for retirado
-    ArvoreB *aux; 
     for(int i=0 ; i<numero_de_comandos ; i++)
     {
         fscanf(input, "%c%*c", &comando);
@@ -90,6 +90,7 @@ int main(int argc, char **argv)
         }
     }
 
+    free(sentinela);
     fclose(input);
     fclose(output);
     fclose(binary);
