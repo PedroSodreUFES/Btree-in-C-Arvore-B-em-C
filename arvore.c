@@ -58,8 +58,47 @@ ArvoreB *criaArvoreB(long int ordem, FILE *binario)
     return arv;
 }
 
-ArvoreB *insereArvore(ArvoreB *raiz, int chave, int valor){
-    
+ArvoreB *insereArvore(ArvoreB *sentinela, int chave, int valor){
+    No *aux = disk_read(sentinela, 0);
+    while(aux->lotado == '1'){
+        int achou =0;
+        for(int i = 0; i< aux->numero_chaves ; i++){
+            if(chave < aux->chaves[i]){
+                aux = disk_read(sentinela, aux->filhos[i]);
+                achou = 1;
+                break;
+            }
+        }
+        if(achou==1) continue;
+        aux = disk_read(sentinela, aux->filhos[aux->numero_chaves]);
+    }
+
+    aux->numero_chaves++;
+
+    // insercao busca binaria
+    if(aux->numero_chaves == sentinela->ordem) aux->lotado = '1';
+
+    int i = aux->numero_chaves - 2;
+    while (i >= 0 && chave < aux->chaves[i]) {
+        i--;
+    }
+    i++;
+
+    for (int j = aux->numero_chaves - 1; j > i; j--) {
+        aux->chaves[j] = aux->chaves[j - 1];
+        aux->valores[j] = aux->valores[j - 1];
+    }
+
+    aux->chaves[i] = chave;
+    aux->valores[i] = valor;
+
+    disk_write(sentinela, aux);
+
+    if(aux->numero_chaves == sentinela->ordem){
+        return sentinela; //divideArvore(aux, sentinela);
+    }
+
+    return sentinela;
 }
 
 long int getOffset(No *no){
@@ -67,6 +106,19 @@ long int getOffset(No *no){
 }
 
 
+
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+
+
+/*----------------DISK_READ--------------------------DISK_WRITE--------------------*/
 No *disk_read(ArvoreB *arvore, long int posicao) {
     FILE *arquivo_bin = arvore->arq_binario;
     No *node = (No *)malloc(sizeof(No));
