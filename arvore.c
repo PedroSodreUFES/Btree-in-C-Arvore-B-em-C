@@ -4,6 +4,9 @@
 #include <stdbool.h>
 #include <limits.h>
 
+#define MIN_CHAVES(ordem) ((ordem)/2 - 1)
+#define MAX_CHAVES(ordem) (ordem - 1)
+
 /*------------------------ STRUCTS ------------------------*/
 struct no
 {
@@ -64,6 +67,7 @@ void liberaNo(No *no)
     }
 }
 
+
 /*--------------------Árvore-----------------------*/
 
 // cria árvore
@@ -76,6 +80,32 @@ ArvoreB *criaArvoreB(int ordem, FILE *binario)
     arv->numero_nos = 0;
     return arv;
 }
+
+static void divideNo (ArvoreB* arvore, No* no) {
+}
+
+// Retorna a posição da chave a ser inserida.
+static int percorreNo (No* no, int chave) {
+    int i = 0;
+    while (i < no->numero_chaves && chave > no->chaves_registro[i].chave) i++;
+    return i; // Para uma posição antes da chave maior que a chave a ser inserida
+}
+
+void insereNoBinario(ArvoreB *arvore, No *no){
+    fseek(arvore->arq_binario, no->posicao_arq_binario * arvore->tam_byte_node, SEEK_SET);
+    fwrite(no, arvore->tam_byte_node, 1, arvore->arq_binario);
+}
+
+void liberaNo (No *no) {
+    free(no->chaves_registro);
+    free(no->filhos);
+    free(no);
+}
+
+/*------------------------------------------------*/
+
+
+/*------------------------ FUNÇÕES ÁRVORE ------------------------*/
 
 ArvoreB *insereArvore(ArvoreB *sentinela, int chave, int valor)
 {
@@ -127,6 +157,9 @@ ArvoreB *insereArvore(ArvoreB *sentinela, int chave, int valor)
 
     // escreve o nó na memoria
     disk_write(sentinela, aux);
+/*------------------------ FUNÇÕES REMOÇÃO ------------------------*/
+/*
+    @brief Retira da Árvore um nó encontrado.
 
     // se o nó estiver além da capacidade, divide ele:
     if (aux->numero_chaves == sentinela->ordem)
@@ -210,8 +243,6 @@ ArvoreB *divideArvore(int offset, ArvoreB *sentinela)
 
     }
 }
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /*----------------DISK_READ--------------------------DISK_WRITE--------------------*/
 No *disk_read(ArvoreB *arvore, int posicao)
