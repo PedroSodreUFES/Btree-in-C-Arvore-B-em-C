@@ -10,6 +10,7 @@ typedef struct no No;
 /* funcoes da arvore*/
 ArvoreB *criaArvoreB(long int ordem, FILE *binario);
 ArvoreB *insereArvore(ArvoreB *arvore, int chave, int dado);
+ArvoreB *divideArvore(No *aux, ArvoreB *sentinela);
 int retiraArvore(ArvoreB *arvore, int chave); // PDF do professor não imprime nada na remoção, então é possível que possa ser void
 int buscaArvore(ArvoreB *arvore, int chave); //Retorna o conteúdo da chave (se não existir, retorna -1??) nao sei se terao registros negativos
 void printaResumo(ArvoreB *arvore);
@@ -17,6 +18,7 @@ void printaResumo(ArvoreB *arvore);
 /* FUNÇÕES DE NÓ*/
 No *criaNo(ArvoreB *arv);
 long int getOffset(No *no);
+char getLotado(No *no);
 
 /* FUNÇÕES DISK*/
 void disk_write(ArvoreB *arvore, No *node);

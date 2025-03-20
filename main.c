@@ -58,6 +58,7 @@ int main(int argc, char **argv)
 
     ArvoreB *sentinela = criaArvoreB(ordem_da_arvore, binary);
     No *raiz = criaNo(sentinela);
+    disk_write(sentinela, raiz);
 
     // processa os comandos
     char comando;
