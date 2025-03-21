@@ -96,6 +96,5 @@ int main(int argc, char **argv)
     fclose(output);
     fclose(binary);
     free(sentinela);
-
-    return 0;
+  return 0;
 }

@@ -10,6 +10,8 @@ typedef struct no No;
 /* funcoes da arvore*/
 ArvoreB *criaArvoreB(int ordem, FILE *binario);
 ArvoreB *insereArvore(ArvoreB *sentinela, int chave, int valor);
+void criaArvoreManual(ArvoreB *arvore);
+void imprimeArvore(ArvoreB *arvore, int posicao, int nivel);      
 ArvoreB *divideArvore(int offset, ArvoreB *sentinela);
 int retiraArvore(ArvoreB *arvore, int chave); // PDF do professor não imprime nada na remoção, então é possível que possa ser void
 int buscaArvore(ArvoreB *arvore, int chave); //Retorna o conteúdo da chave (se não existir, retorna -1??) nao sei se terao registros negativos
