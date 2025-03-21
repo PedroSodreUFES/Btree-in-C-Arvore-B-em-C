@@ -20,11 +20,11 @@ int main(int argc, char **argv)
     //     LEITURA DE ARQUIVOS
     // -----------------------
     // */
-    if (argc < 3)
-    {
-        printf("É preciso fornecer um arquivo de entrada e outro de saída para rodar o programa!\nRode o programa no formato ./trab2 <entrada.txt> <saida.txt>\n");
-        exit(1);
-    }
+    // if (argc < 3)
+    // {
+    //     printf("É preciso fornecer um arquivo de entrada e outro de saída para rodar o programa!\nRode o programa no formato ./trab2 <entrada.txt> <saida.txt>\n");
+    //     exit(1);
+    // }
 
     FILE *input, *output, *binary;
 
@@ -90,13 +90,7 @@ int main(int argc, char **argv)
             printf("Comando inválido detectado!\nO comando %c não tem uma definicao!\n", comando);
             fscanf(input, "%*[^IRB]");
         }
-        printf("\n");
-        No *no = disk_read(sentinela, 45);
-        printaChaves(no);
-        printaFilhos(no);
-        liberaNo(no);
     }
-
     fclose(input);
     fclose(output);
     fclose(binary);
