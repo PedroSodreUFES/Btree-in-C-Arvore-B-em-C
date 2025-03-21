@@ -3,23 +3,23 @@
 #include <stdlib.h>
 #include "arvore.h"
 
- /*
-        -----------------------------
-        ETAPA DE LEITURA DE ARQUIVOS;
-        1- recebe numero de operações
-        2- recebe a ordem da árvore
-        3- recebe em um loop a
-            sequência de operações
-        -----------------------------
+/*
+       -----------------------------
+       ETAPA DE LEITURA DE ARQUIVOS;
+       1- recebe numero de operações
+       2- recebe a ordem da árvore
+       3- recebe em um loop a
+           sequência de operações
+       -----------------------------
 */
 
 int main(int argc, char **argv)
 {
-    /*
-    -----------------------
-        LEITURA DE ARQUIVOS
-    -----------------------
-    */
+    // /*
+    // -----------------------
+    //     LEITURA DE ARQUIVOS
+    // -----------------------
+    // */
     if (argc < 3)
     {
         printf("É preciso fornecer um arquivo de entrada e outro de saída para rodar o programa!\nRode o programa no formato ./trab2 <entrada.txt> <saida.txt>\n");
@@ -46,7 +46,8 @@ int main(int argc, char **argv)
     }
 
     binary = fopen("binario.bin", "w+b");
-    if(binary == NULL){
+    if (binary == NULL)
+    {
         printf("Arquivo binário não pode ser aberto\n");
         exit(1);
     }
@@ -66,25 +67,26 @@ int main(int argc, char **argv)
     int chave, dado;
 
     // no que vai receber o que for retirado
-    for(int i=0 ; i<numero_de_comandos ; i++)
+    for (int i = 0; i < numero_de_comandos; i++)
     {
         fscanf(input, "%c%*c", &comando);
-        if(comando == 'I')
+        if (comando == 'I')
         {
-            fscanf(input,"%d, %d%*[^RBI]", &chave, &dado);
+            fscanf(input, "%d, %d%*[^RBI]", &chave, &dado);
             sentinela = insereArvore(sentinela, chave, dado);
         }
-        else if(comando == 'R')
-        {
-            fscanf(input,"%d%*[^RBI]", &chave);
-            //aux = retiraArvore(sentinela, chave);
-        }
-        else if(comando == 'B')
+        else if (comando == 'R')
         {
             fscanf(input, "%d%*[^RBI]", &chave);
-            //buscaArvore(sentinela, chave);
+            // aux = retiraArvore(sentinela, chave);
         }
-        else{
+        else if (comando == 'B')
+        {
+            fscanf(input, "%d%*[^RBI]", &chave);
+            // buscaArvore(sentinela, chave);
+        }
+        else
+        {
             printf("Comando inválido detectado!\nO comando %c não tem uma definicao!\n", comando);
             fscanf(input, "%*[^IRB]");
         }
