@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <limits.h>
+#include <unistd.h>
 #include <math.h>
 
 #define MIN_CHAVES(ordem) (ceil(((ordem)/2 - 1))) // ceil arredonda para cima
@@ -15,8 +16,8 @@ struct no
     bool eh_folha;
     bool lotado;
     int posicao_arq_binario;
+    int pai_offset;
     int *filhos, *chaves, *valores;
-    int pai_offset; 
 };
 
 struct __arvoreB
@@ -25,6 +26,7 @@ struct __arvoreB
     int numero_nos;
     int tam_byte_node;
     FILE *arq_binario;
+    int offsetRaiz;
 };
 
 
@@ -40,7 +42,7 @@ static bool emprestaDoIrmaoDireito(ArvoreB* arvore, No* pai, int indice);
 static No* getPredecessor(ArvoreB *arvore, No *no);
 static No* getSucessor(ArvoreB *arvore, No *no);
 /*--------------------Nó-----------------------*/
-// cria nó
+
 No *criaNo(ArvoreB *arv)
 {
     No *no = calloc(1, sizeof(No));
@@ -48,21 +50,29 @@ No *criaNo(ArvoreB *arv)
     no->eh_folha = true;
     no->lotado = false;
     no->pai_offset = -1;
-    no->posicao_arq_binario = arv->numero_nos;
-    arv->numero_nos++;
-    no->chaves = (int *)calloc(arv->ordem, sizeof(int));
-    no->valores = (int *)calloc((arv->ordem - 1), sizeof(int));
-    no->filhos = (int *)calloc(arv->ordem, sizeof(int));
-    for (int i = 0; i < arv->ordem; i++)
-    {
-        no->filhos[i] = INT_MAX;
-        no->chaves[i] = INT_MAX;
-        if (i < arv->ordem - 1)
-        {
-            no->valores[i] = INT_MAX;
-        }
-    }
+    int posicao = arv->numero_nos;
+    no->posicao_arq_binario = posicao;
+    arv->numero_nos = arv->numero_nos + 1;
+    int ordem = arv->ordem, i;
+    no->chaves = calloc(ordem, sizeof(int));
+    no->filhos = calloc(ordem + 1, sizeof(int));
+    no->valores = calloc(ordem, sizeof(int));
+    return no;
+}
 
+No *criaNoVazio(ArvoreB *arv)
+{
+    No *no = (No *)malloc(1 * sizeof(No));
+    no->eh_folha = '1';
+    no->lotado = '0';
+    no->numero_chaves = 0;
+    no->pai_offset = -1;
+    no->posicao_arq_binario = -1;
+    int ordem = arv->ordem;
+    int *chaves = (int *)malloc(ordem * sizeof(int)), *filhos = (int *)malloc((ordem + 1) * sizeof(int)), *valores = (int *)malloc(ordem * sizeof(int));
+    no->chaves = chaves;
+    no->filhos = filhos;
+    no->valores = valores;
     return no;
 }
 
@@ -71,11 +81,17 @@ void liberaNo(No *no)
     if (no != NULL)
     {
         if (no->filhos != NULL)
+        {
             free(no->filhos);
+        }
         if (no->chaves != NULL)
+        {
             free(no->chaves);
+        }
         if (no->valores != NULL)
+        {
             free(no->valores);
+        }
         free(no);
     }
 }
@@ -278,71 +294,65 @@ void imprimeArvore(ArvoreB *arvore, int posicao, int nivel) {
 // cria árvore
 ArvoreB *criaArvoreB(int ordem, FILE *binario)
 {
-    ArvoreB *arv = malloc(sizeof(ArvoreB));
+    ArvoreB *arv = calloc(1, sizeof(ArvoreB));
     arv->arq_binario = binario;
-    arv->tam_byte_node = sizeof(No);
+    arv->tam_byte_node = sizeof(No) + 3 * sizeof(int) * ordem + 1 * sizeof(int);
     arv->ordem = ordem;
     arv->numero_nos = 0;
+    arv->offsetRaiz = 0;
     return arv;
 }
 
-static void divideNo (ArvoreB* arvore, No* no) {
+int retornaOffsetRaiz(ArvoreB *arv)
+{
+    return arv->offsetRaiz;
 }
-
-// Retorna a posição da chave a ser inserida.
-static int percorreNo (No* no, int chave) {
-    int i = 0;
-    while (i < no->numero_chaves && chave > no->chaves[i]) i++;
-    return i; // Para uma posição antes da chave maior que a chave a ser inserida
-}
-
-void insereNoBinario(ArvoreB *arvore, No *no){
-    fseek(arvore->arq_binario, no->posicao_arq_binario * arvore->tam_byte_node, SEEK_SET);
-    fwrite(no, arvore->tam_byte_node, 1, arvore->arq_binario);
-}
-
-/*------------------------------------------------*/
-
-
-/*------------------------ FUNÇÕES ÁRVORE ------------------------*/
 
 ArvoreB *insereArvore(ArvoreB *sentinela, int chave, int valor)
 {
     No *aux = disk_read(sentinela, 0);
-    // acha a folha
-    while (!aux->eh_folha)
+    int i, offset;
+    while (aux->eh_folha == '0')
     {
         int achou = 0;
-        for (int i = 0; i < aux->numero_chaves; i++)
+        for (i = 0; i < aux->numero_chaves; i++)
         {
             if (chave < aux->chaves[i])
             {
-                int offset = aux->filhos[i];
+                offset = aux->filhos[i];
                 liberaNo(aux);
                 aux = disk_read(sentinela, offset);
                 achou = 1;
                 break;
             }
-            else if(chave == aux->chaves[i]){
+            else if (chave == aux->chaves[i])
+            {
                 aux->valores[i] = valor;
                 disk_write(sentinela, aux);
                 liberaNo(aux);
                 return sentinela;
             }
         }
-        if (achou == 0){aux = disk_read(sentinela, aux->filhos[aux->numero_chaves]);}
+        if (achou == 0)
+        {
+            offset = aux->filhos[aux->numero_chaves];
+            liberaNo(aux);
+            aux = disk_read(sentinela, offset);
+        }
     }
 
     // aumenta o numero de chaves na folha
     aux->numero_chaves++;
-    if(aux->numero_chaves == sentinela->ordem-1) aux->lotado = '1';
+    if (aux->numero_chaves == sentinela->ordem - 1)
+        aux->lotado = '1';
 
     // insere de forma ordenada na folha
-    int i = aux->numero_chaves - 2;
+    i = aux->numero_chaves - 2;
     while (i >= 0 && chave < aux->chaves[i])
     {
         i--;
     }
+
     i++;
 
     for (int j = aux->numero_chaves - 1; j > i; j--)
@@ -361,7 +371,6 @@ ArvoreB *insereArvore(ArvoreB *sentinela, int chave, int valor)
     {
         int offset = aux->posicao_arq_binario;
         liberaNo(aux);
-        printf("Terei de dividir\n");
         return divideArvore(offset, sentinela);
     }
 
@@ -374,17 +383,83 @@ ArvoreB *divideArvore(int offset, ArvoreB *sentinela)
 {
     No *antiga_raiz = disk_read(sentinela, offset);
 
-    // raiz ta lotada
-    if (antiga_raiz->pai_offset== -1)
+    // raiz ta lotada, ou seja, pai não existe.
+    if (antiga_raiz->pai_offset == -1)
     {
-        int i, k, contfilhos = 0;
+        int i, k;
 
         // cria o nível acima
         int chave_do_meio = antiga_raiz->chaves[(sentinela->ordem / 2) - 1];
-        int valor_do_meio = antiga_raiz->valores[(sentinela->ordem/2)-1];
-        No *pai = criaNo(sentinela);
-        pai->numero_chaves = 1; // isso significa que há 2 filhos também :)
-        pai->eh_folha= '0';
+        int valor_do_meio = antiga_raiz->valores[(sentinela->ordem / 2) - 1];
+        No *filhoMenor = criaNo(sentinela);
+        filhoMenor->numero_chaves = sentinela->ordem / 2 - 1;
+
+        for (i = 0; i < (sentinela->ordem / 2) - 1; i++)
+        {
+            filhoMenor->chaves[i] = antiga_raiz->chaves[i];
+            filhoMenor->valores[i] = antiga_raiz->valores[i];
+            filhoMenor->filhos[i] = antiga_raiz->filhos[i];
+        }
+        filhoMenor->filhos[i] = antiga_raiz->filhos[i];
+        filhoMenor->eh_folha = antiga_raiz->eh_folha;
+        filhoMenor->lotado = '0';
+        filhoMenor->pai_offset = 0;
+
+        No *filhoMaior = criaNo(sentinela);
+        filhoMaior->numero_chaves = sentinela->ordem - (sentinela->ordem / 2);
+        for (i = 0, k = sentinela->ordem / 2; k < antiga_raiz->numero_chaves; k++, i++)
+        {
+            filhoMaior->chaves[i] = antiga_raiz->chaves[k];
+            filhoMaior->valores[i] = antiga_raiz->valores[k];
+            filhoMaior->filhos[i] = antiga_raiz->filhos[k];
+        }
+        filhoMaior->filhos[i] = antiga_raiz->filhos[k];
+        filhoMaior->eh_folha = antiga_raiz->eh_folha;
+        filhoMaior->lotado = '0';
+        filhoMaior->pai_offset = 0;
+
+        antiga_raiz->numero_chaves = 1;
+        antiga_raiz->filhos[0] = filhoMenor->posicao_arq_binario;
+        antiga_raiz->filhos[1] = filhoMaior->posicao_arq_binario;
+        antiga_raiz->chaves[0] = chave_do_meio;
+        antiga_raiz->valores[0] = valor_do_meio;
+        antiga_raiz->eh_folha = '0';
+        antiga_raiz->lotado = '0';
+
+        filhoMaior->pai_offset = antiga_raiz->posicao_arq_binario;
+        filhoMenor->pai_offset = antiga_raiz->posicao_arq_binario;
+
+        disk_write(sentinela, filhoMenor);
+        disk_write(sentinela, filhoMaior);
+        disk_write(sentinela, antiga_raiz);
+
+        liberaNo(antiga_raiz);
+        liberaNo(filhoMenor);
+        liberaNo(filhoMaior);
+
+        return sentinela;
+    }
+
+    // ao dividir a raíz, será colocado um nó em um pai que já existe
+    else
+    {
+        int i, k;
+        // recupera as chaves do meio
+        int chave_do_meio = antiga_raiz->chaves[(sentinela->ordem / 2) - 1];
+        int valor_do_meio = antiga_raiz->valores[(sentinela->ordem / 2) - 1];
+
+        No *filhoMenor = criaNo(sentinela);
+        filhoMenor->numero_chaves = sentinela->ordem / 2 - 1;
+        for (i = 0; i < (sentinela->ordem / 2) - 1; i++)
+        {
+            filhoMenor->chaves[i] = antiga_raiz->chaves[i];
+            filhoMenor->valores[i] = antiga_raiz->valores[i];
+            filhoMenor->filhos[i] = antiga_raiz->filhos[i];
+        }
+        filhoMenor->filhos[i] = antiga_raiz->filhos[i];
+        filhoMenor->eh_folha = antiga_raiz->eh_folha;
+        filhoMenor->lotado = '0';
+        filhoMenor->pai_offset = antiga_raiz->pai_offset;
 
         // cria o nivel com a segunda metade:
         No *filhoMaior = criaNo(sentinela);
@@ -396,46 +471,60 @@ ArvoreB *divideArvore(int offset, ArvoreB *sentinela)
             filhoMaior->filhos[i] = antiga_raiz->filhos[k];
         }
         filhoMaior->filhos[i] = antiga_raiz->filhos[k];
-        if(filhoMaior->filhos[0] == INT_MAX){
-            filhoMaior->eh_folha = '1';
-        }
-        else{
-            filhoMaior->eh_folha = '0';
-        }
+        filhoMaior->eh_folha = antiga_raiz->eh_folha;
         filhoMaior->lotado = '0';
-        filhoMaior->pai_offset = 0;
+        filhoMaior->pai_offset = antiga_raiz->posicao_arq_binario;
 
-        // reajusta a raiz para ser a metade menor
-        antiga_raiz->numero_chaves = (sentinela->ordem/2) -1;
-        antiga_raiz->lotado = '0';
-        antiga_raiz->pai_offset = 0;
-        antiga_raiz->posicao_arq_binario = pai->posicao_arq_binario;
-        if(antiga_raiz->filhos[0] == INT_MAX){
-            antiga_raiz->eh_folha = '1';
+        // antiga raiz deve ir ao pai;
+        int salvaOffset = antiga_raiz->pai_offset;
+        No *pai = disk_read(sentinela, salvaOffset);
+        pai->numero_chaves++;
+        if (pai->numero_chaves == sentinela->ordem - 1)
+            pai->lotado = '1';
+
+        int j;
+        i = pai->numero_chaves - 2;
+        while (i >= 0 && chave_do_meio < pai->chaves[i])
+        {
+            i--;
         }
-        else{
-            antiga_raiz->eh_folha = '0';
+        i++;
+
+        for (j = pai->numero_chaves - 1; j > i; j--)
+        {
+            pai->chaves[j] = pai->chaves[j - 1];
+            pai->valores[j] = pai->valores[j - 1];
+            pai->filhos[j + 1] = pai->filhos[j];
         }
 
-        // atualiza o pai
-        pai->posicao_arq_binario=0;
-        pai->filhos[0] = antiga_raiz->posicao_arq_binario;
-        pai->filhos[1] = filhoMaior->posicao_arq_binario;
-        pai->valores[0] = valor_do_meio;
-        pai->chaves[0] = chave_do_meio;
-        pai->pai_offset = -1;
-        
-        disk_write(sentinela, pai);
-        disk_write(sentinela, antiga_raiz);
+        pai->chaves[i] = chave_do_meio;
+        pai->valores[i] = valor_do_meio;
+        pai->filhos[i] = filhoMenor->posicao_arq_binario;
+        pai->filhos[i + 1] = filhoMaior->posicao_arq_binario;
+
+        pai->eh_folha = '0';
+
+        filhoMaior->pai_offset = antiga_raiz->pai_offset;
+        filhoMenor->pai_offset = antiga_raiz->pai_offset;
+        pai->posicao_arq_binario = salvaOffset;
+
+        disk_write(sentinela, filhoMenor);
         disk_write(sentinela, filhoMaior);
+        disk_write(sentinela, antiga_raiz);
+        disk_write(sentinela, pai);
 
+        liberaNo(filhoMaior);
+        liberaNo(filhoMenor);
+        liberaNo(antiga_raiz);
+
+        if (pai->numero_chaves == sentinela->ordem)
+        {
+            liberaNo(pai);
+            return divideArvore(salvaOffset, sentinela);
+        }
+
+        liberaNo(pai);
         return sentinela;
-    }
-
-    // no qualquer está lotado
-    else
-    {
-
     }
 }
 
@@ -466,47 +555,6 @@ int retiraArvore(ArvoreB *arvore, int chave) {
 }
 
 
-/*----------------DISK_READ--------------------------DISK_WRITE--------------------*/
-No *disk_read(ArvoreB *arvore, int posicao)
-{
-    FILE *arquivo_bin = arvore->arq_binario;
-    No *node = (No *)malloc(sizeof(No));
-    fseek(arquivo_bin, posicao * arvore->tam_byte_node, SEEK_SET);
-
-    fread(&node->numero_chaves, sizeof(int), 1, arquivo_bin);
-    fread(&node->eh_folha, sizeof(bool), 1, arquivo_bin);
-    fread(&node->lotado, sizeof(bool), 1, arquivo_bin);
-    fread(&node->posicao_arq_binario, sizeof(int), 1, arquivo_bin);
-
-    node->chaves = (int *)malloc((arvore->ordem - 1)* sizeof(int));
-    node->valores = (int *)malloc((arvore->ordem - 1) * sizeof(int));
-    node->filhos = (int *)malloc(arvore->ordem * sizeof(int));
-
-    fread(node->chaves, sizeof(int), arvore->ordem - 1, arquivo_bin);
-    fread(node->valores, sizeof(int), arvore->ordem - 1, arquivo_bin);
-    fread(node->filhos, sizeof(int), arvore->ordem, arquivo_bin);
-    fread(&node->pai_offset, sizeof(int), 1, arquivo_bin);
-
-    return node;
-}
-
-void disk_write(ArvoreB *arvore, No *node)
-{
-    FILE *arquivo_bin = arvore->arq_binario;
-    fseek(arquivo_bin, node->posicao_arq_binario * arvore->tam_byte_node, SEEK_SET);
-
-    fwrite(&node->numero_chaves, sizeof(int), 1, arquivo_bin);
-    fwrite(&node->eh_folha, sizeof(bool), 1, arquivo_bin);
-    fwrite(&node->lotado, sizeof(bool), 1, arquivo_bin);
-    fwrite(&node->posicao_arq_binario, sizeof(int), 1, arquivo_bin);
-    fwrite(node->chaves, sizeof(int), arvore->ordem - 1, arquivo_bin);
-    fwrite(node->valores, sizeof(int), arvore->ordem - 1, arquivo_bin);
-    fwrite(node->filhos, sizeof(int), arvore->ordem, arquivo_bin);
-    fwrite(&node->pai_offset, sizeof(int), 1, arquivo_bin);
-
-    fflush(arquivo_bin);
-}
-
 /*----------------------------TEST FUNCTIONS----------------------------------------*/
 int getOffset(No *no)
 {
@@ -518,10 +566,119 @@ char getLotado(No *no)
     return no->lotado;
 }
 
-void printaChaves(No *no){
-    for(int i=0; i< no->numero_chaves ; i++){
+void printaChaves(No *no)
+{
+    for (int i = 0; i < no->numero_chaves; i++)
+    {
         printf("%d ", no->chaves[i]);
+        printf("pao\n");
     }
+    printf("\n");
+}
+
+void printaValores(No *no)
+{
+    for (int i = 0; i < no->numero_chaves; i++)
+    {
+        printf("%d ", no->valores[i]);
+    }
+    printf("\n");
+}
+
+void printaFilhos(No *no)
+{
+    for (int i = 0; i < no->numero_chaves + 1; i++)
+    {
+        printf("%d ", no->filhos[i]);
+    }
+    printf("\n");
+}
+
+/*----------------DISK_READ--------------------------DISK_WRITE--------------------*/
+No *disk_read(ArvoreB *arvore, int posicao)
+{
+    FILE *arquivo_bin = arvore->arq_binario;
+
+    int ordem = arvore->ordem;
+
+    No *node = criaNoVazio(arvore);
+    char eh_folha, lotado;
+    int paiOffset, posicao_arq_binario, numero_chaves;
+
+    fseek(arquivo_bin, posicao * arvore->tam_byte_node, SEEK_SET);
+
+    fread(&numero_chaves, sizeof(int), 1, arquivo_bin);
+    fread(&eh_folha, sizeof(char), 1, arquivo_bin);
+    fread(&lotado, sizeof(char), 1, arquivo_bin);
+    fread(&posicao_arq_binario, sizeof(int), 1, arquivo_bin);
+    fread(&paiOffset, sizeof(int), 1, arquivo_bin);
+    node->numero_chaves = numero_chaves;
+    node->eh_folha = eh_folha;
+    node->lotado = lotado;
+    node->posicao_arq_binario = posicao_arq_binario;
+    node->pai_offset = paiOffset;
+
+    fread(node->chaves, sizeof(int), ordem, arquivo_bin);
+    fread(node->valores, sizeof(int), ordem, arquivo_bin);
+    fread(node->filhos, sizeof(int), ordem + 1, arquivo_bin);
+
+    return node;
+}
+
+void disk_write(ArvoreB *arvore, No *node)
+{
+    FILE *arquivo_bin = arvore->arq_binario;
+    int ordem = arvore->ordem;
+    fseek(arquivo_bin, node->posicao_arq_binario * arvore->tam_byte_node, SEEK_SET);
+
+    fwrite(&node->numero_chaves, sizeof(int), 1, arquivo_bin);
+    fwrite(&node->eh_folha, sizeof(bool), 1, arquivo_bin);
+    fwrite(&node->lotado, sizeof(bool), 1, arquivo_bin);
+    fwrite(&node->posicao_arq_binario, sizeof(int), 1, arquivo_bin);
+    fwrite(&node->pai_offset, sizeof(int), 1, arquivo_bin);
+
+    fwrite(node->chaves, sizeof(int), ordem, arquivo_bin);
+    fwrite(node->valores, sizeof(int), ordem, arquivo_bin);
+    fwrite(node->filhos, sizeof(int), ordem + 1, arquivo_bin);
+    fflush(arquivo_bin);
+}
+
+void teste()
+{
+    FILE *bin = fopen("binario.bin", "w+b");
+    ArvoreB *arv = criaArvoreB(5, bin);
+    No *no1 = criaNo(arv);
+    No *no2 = criaNo(arv);
+    no1->eh_folha = 'a';
+    no1->lotado = 'b';
+    no1->pai_offset = 32;
+    no1->posicao_arq_binario = 0;
+
+    no2->numero_chaves = 5;
+    no1->numero_chaves = 5;
+
+    for (int i = 0; i < 6; i++)
+    {
+        no1->filhos[i] = i + 1;
+    }
+
+    for (int i = 0; i < 6; i++)
+    {
+        no2->filhos[i] = i + 3;
+    }
+
+    disk_write(arv, no1);
+    disk_write(arv, no2);
+
+    liberaNo(no1);
+    liberaNo(no2);
+
+    No *no3 = disk_read(arv, 0);
+    printaFilhos(no3);
+    no3 = disk_read(arv, 1);
+    printaFilhos(no3);
+    no3 = disk_read(arv, 0);
+    printaFilhos(no3);
     printf("\n");
 }
 
