@@ -91,6 +91,7 @@ int main(int argc, char **argv)
             fscanf(input, "%*[^IRB]");
         }
     }
+
     fclose(input);
     fclose(output);
     fclose(binary);
