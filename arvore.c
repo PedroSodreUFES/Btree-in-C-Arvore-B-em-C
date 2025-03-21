@@ -124,7 +124,7 @@ ArvoreB *insereArvore(ArvoreB *sentinela, int chave, int valor)
         }
         if (achou == 0)
         {
-            int offset = aux->filhos[i];
+            int offset = aux->filhos[aux->numero_chaves];
             liberaNo(aux);
             aux = disk_read(sentinela, offset);
         }
@@ -155,6 +155,7 @@ ArvoreB *insereArvore(ArvoreB *sentinela, int chave, int valor)
     // escreve o nó na memoria
     disk_write(sentinela, aux);
     // se o nó estiver além da capacidade, divide ele:
+
     if (aux->numero_chaves == sentinela->ordem)
     {
         int offset = aux->posicao_arq_binario;
@@ -250,8 +251,7 @@ ArvoreB *divideArvore(int offset, ArvoreB *sentinela)
             filhoMenor->filhos[i] = antiga_raiz->filhos[i];
         }
         filhoMenor->filhos[i] = antiga_raiz->filhos[i];
-        if(antiga_raiz->eh_folha == '1') filhoMenor->eh_folha = '1';
-        else {filhoMenor->eh_folha = '0';}
+        filhoMenor->eh_folha = antiga_raiz->eh_folha;
         filhoMenor->lotado = '0';
         filhoMenor->pai_offset = antiga_raiz->pai_offset;
 
@@ -307,6 +307,7 @@ ArvoreB *divideArvore(int offset, ArvoreB *sentinela)
 
         liberaNo(filhoMaior);
         liberaNo(filhoMenor);
+        liberaNo(antiga_raiz);
 
         if (pai->numero_chaves == sentinela->ordem)
         {
@@ -356,7 +357,7 @@ void disk_write(ArvoreB *arvore, No *node)
 {
     FILE *arquivo_bin = arvore->arq_binario;
     int ordem = arvore->ordem;
-    fseek(arquivo_bin, node->posicao_arq_binario * sizeof(No), SEEK_SET);
+    fseek(arquivo_bin, node->posicao_arq_binario *arvore->tam_byte_node, SEEK_SET);
 
     fwrite(&node->numero_chaves, sizeof(int), 1, arquivo_bin);
     fwrite(&node->eh_folha, sizeof(char), 1, arquivo_bin);
