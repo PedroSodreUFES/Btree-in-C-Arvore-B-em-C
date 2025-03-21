@@ -162,7 +162,9 @@ void criaArvoreManual(ArvoreB *arvore) {
     neto1->eh_folha = 1;
     neto1->chaves[0] = 5;
     neto1->valores[0] = 50;
-    neto1->numero_chaves = 1;
+    neto1->chaves[1] = 10;
+    neto1->valores[1] = 100;
+    neto1->numero_chaves = 2;
     neto1->pai_offset = 1; // Pai é o filho1 (posição 1)
     disk_write(arvore, neto1);
 
@@ -452,12 +454,13 @@ int retiraArvore(ArvoreB *arvore, int chave) {
         disk_write(arvore, nova_raiz);
         
         // Atualiza a árvore
-        arvore->numero_nos--; // Remove a raiz antiga
-        liberaNo(raiz); // Libera a raiz antiga
-        raiz = nova_raiz; // Atualiza referência
-    }
-
-    disk_write(arvore, raiz);
+        arvore->numero_nos--; 
+        liberaNo(raiz);
+        liberaNo(nova_raiz);
+        return registro;
+    } 
+        
+    disk_write(arvore, raiz); // Atualiza a raiz se não foi substituída
     liberaNo(raiz);
     return registro;
 }
@@ -475,11 +478,11 @@ No *disk_read(ArvoreB *arvore, int posicao)
     fread(&node->lotado, sizeof(bool), 1, arquivo_bin);
     fread(&node->posicao_arq_binario, sizeof(int), 1, arquivo_bin);
 
-    node->chaves = (int *)malloc(arvore->ordem * sizeof(int));
+    node->chaves = (int *)malloc((arvore->ordem - 1)* sizeof(int));
     node->valores = (int *)malloc((arvore->ordem - 1) * sizeof(int));
     node->filhos = (int *)malloc(arvore->ordem * sizeof(int));
 
-    fread(node->chaves, sizeof(int), arvore->ordem, arquivo_bin);
+    fread(node->chaves, sizeof(int), arvore->ordem - 1, arquivo_bin);
     fread(node->valores, sizeof(int), arvore->ordem - 1, arquivo_bin);
     fread(node->filhos, sizeof(int), arvore->ordem, arquivo_bin);
     fread(&node->pai_offset, sizeof(int), 1, arquivo_bin);
@@ -496,7 +499,7 @@ void disk_write(ArvoreB *arvore, No *node)
     fwrite(&node->eh_folha, sizeof(bool), 1, arquivo_bin);
     fwrite(&node->lotado, sizeof(bool), 1, arquivo_bin);
     fwrite(&node->posicao_arq_binario, sizeof(int), 1, arquivo_bin);
-    fwrite(node->chaves, sizeof(int), arvore->ordem, arquivo_bin);
+    fwrite(node->chaves, sizeof(int), arvore->ordem - 1, arquivo_bin);
     fwrite(node->valores, sizeof(int), arvore->ordem - 1, arquivo_bin);
     fwrite(node->filhos, sizeof(int), arvore->ordem, arquivo_bin);
     fwrite(&node->pai_offset, sizeof(int), 1, arquivo_bin);
