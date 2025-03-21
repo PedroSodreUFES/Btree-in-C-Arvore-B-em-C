@@ -90,13 +90,13 @@ int main(int argc, char **argv)
             printf("Comando inválido detectado!\nO comando %c não tem uma definicao!\n", comando);
             fscanf(input, "%*[^IRB]");
         }
-        printaChaves(disk_read(sentinela, 0));
+        printaFilhos(disk_read(sentinela, 45));
     }
 
-    free(sentinela);
     fclose(input);
     fclose(output);
     fclose(binary);
+    free(sentinela);
 
     return 0;
 }
