@@ -18,6 +18,7 @@ int retornaOffsetRaiz(ArvoreB *arv);
 
 /* FUNÇÕES DE NÓ*/
 No *criaNo(ArvoreB *arv);
+No *criaNoVazio(ArvoreB *arv);
 int getOffset(No *no);
 char getLotado(No *no);
 void liberaNo(No *no);
