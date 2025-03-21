@@ -84,10 +84,11 @@ int retornaOffsetRaiz(ArvoreB *arv)
 ArvoreB *insereArvore(ArvoreB *sentinela, int chave, int valor)
 {
     No *aux = disk_read(sentinela, 0);
+    int i;
     while (aux->eh_folha == '0')
     {
         int achou = 0;
-        for (int i = 0; i < aux->numero_chaves; i++)
+        for (i = 0; i < aux->numero_chaves; i++)
         {
             if (chave < aux->chaves[i])
             {
@@ -109,7 +110,7 @@ ArvoreB *insereArvore(ArvoreB *sentinela, int chave, int valor)
         if (achou == 0)
         {
             disk_write(sentinela, aux);
-            aux = disk_read(sentinela, aux->filhos[aux->numero_chaves]);
+            aux = disk_read(sentinela, aux->filhos[i]);
         }
     }
 
@@ -119,7 +120,7 @@ ArvoreB *insereArvore(ArvoreB *sentinela, int chave, int valor)
         aux->lotado = '1';
 
     // insere de forma ordenada na folha
-    int i = aux->numero_chaves - 2;
+    i = aux->numero_chaves - 2;
     while (i >= 0 && chave < aux->chaves[i])
     {
         i--;
@@ -234,14 +235,8 @@ ArvoreB *divideArvore(int offset, ArvoreB *sentinela)
             filhoMenor->filhos[i] = antiga_raiz->filhos[i];
         }
         filhoMenor->filhos[i] = antiga_raiz->filhos[i];
-        if (filhoMenor->filhos[0] == INT_MAX)
-        {
-            filhoMenor->eh_folha = '1';
-        }
-        else
-        {
-            filhoMenor->eh_folha = '0';
-        }
+        if(antiga_raiz->eh_folha == '1') filhoMenor->eh_folha = '1';
+        else {filhoMenor->eh_folha = '0';}
         filhoMenor->lotado = '0';
         filhoMenor->pai_offset = antiga_raiz->pai_offset;
 
@@ -255,14 +250,8 @@ ArvoreB *divideArvore(int offset, ArvoreB *sentinela)
             filhoMaior->filhos[i] = antiga_raiz->filhos[k];
         }
         filhoMaior->filhos[i] = antiga_raiz->filhos[k];
-        if (filhoMaior->filhos[0] == INT_MAX)
-        {
-            filhoMaior->eh_folha = '1';
-        }
-        else
-        {
-            filhoMaior->eh_folha = '0';
-        }
+        if(antiga_raiz->eh_folha == '1') filhoMaior->eh_folha = '1';
+        else {filhoMaior->eh_folha = '0';}
         filhoMaior->lotado = '0';
         filhoMaior->pai_offset = antiga_raiz->posicao_arq_binario;
 
@@ -287,8 +276,6 @@ ArvoreB *divideArvore(int offset, ArvoreB *sentinela)
             pai->filhos[j + 1] = pai->filhos[j];
         }
 
-        printf("%d %d\n", filhoMaior->posicao_arq_binario, filhoMenor->posicao_arq_binario);
-
         pai->chaves[i] = chave_do_meio;
         pai->valores[i] = valor_do_meio;
         pai->filhos[i] = filhoMenor->posicao_arq_binario;
@@ -303,16 +290,19 @@ ArvoreB *divideArvore(int offset, ArvoreB *sentinela)
         disk_write(sentinela, filhoMenor);
         disk_write(sentinela, filhoMaior);
 
+        liberaNo(filhoMaior);
+        liberaNo(filhoMenor);
+
         if (pai->numero_chaves == sentinela->ordem)
         {
             int salvaOffset = pai->posicao_arq_binario;
             disk_write(sentinela, pai);
+            liberaNo(pai);
             return divideArvore(salvaOffset, sentinela);
         }
 
-        printaChaves(disk_read(sentinela, 0));
-
         disk_write(sentinela, pai);
+        liberaNo(pai);
         return sentinela;
     }
 }
