@@ -33,6 +33,7 @@ static int percorreNo (No* no, int chave);
 static int removeChave(ArvoreB* arvore, No* no, int chave);
 static void removeDaFolha(No* no, int indice);
 static void removeDeNoInterno(ArvoreB* arvore, No* no, int indice);
+static void fundirNos(ArvoreB *arvore, No *pai, int indice);
 static void tratarUnderflow(ArvoreB* arvore, No* pai, int indice);
 static bool emprestaDoIrmaoEsquerdo(ArvoreB* arvore, No* pai, int indice);
 static bool emprestaDoIrmaoDireito(ArvoreB* arvore, No* pai, int indice);
@@ -81,6 +82,196 @@ void liberaNo(No *no)
 
 
 /*--------------------Árvore-----------------------*/
+
+void criaArvoreManual(ArvoreB *arvore) {
+    // Configurações
+    int ordem = 3;
+    arvore->ordem = ordem;
+    arvore->numero_nos = 12; // Total de nós criados
+    arvore->tam_byte_node = sizeof(No);
+
+    // ------------------------
+    // Nível 0: Raiz
+    // ------------------------
+    No *raiz = criaNo(arvore);
+    raiz->posicao_arq_binario = 0;
+    raiz->eh_folha = 0;
+    raiz->chaves[0] = 30;   // Valores da raiz
+    raiz->chaves[1] = 60;
+    raiz->valores[0] = 300; // Conteúdos associados
+    raiz->valores[1] = 600;
+    raiz->numero_chaves = 2;
+    raiz->filhos[0] = 1;    // Filho 1 (posição 1)
+    raiz->filhos[1] = 2;    // Filho 2 (posição 2)
+    raiz->filhos[2] = 3;    // Filho 3 (posição 3)
+    disk_write(arvore, raiz);
+
+    // ------------------------
+    // Nível 1: Filhos da Raiz
+    // ------------------------
+
+    // Filho 1 (posição 1)
+    No *filho1 = criaNo(arvore);
+    filho1->posicao_arq_binario = 1;
+    filho1->eh_folha = 0;
+    filho1->chaves[0] = 10;
+    filho1->chaves[1] = 20;
+    filho1->valores[0] = 100;
+    filho1->valores[1] = 200;
+    filho1->numero_chaves = 2;
+    filho1->filhos[0] = 4;  // Neto 1 (posição 4)
+    filho1->filhos[1] = 5;  // Neto 2 (posição 5)
+    filho1->filhos[2] = 6;  // Neto 3 (posição 6)
+    filho1->pai_offset = 0; // Pai é a raiz (posição 0)
+    disk_write(arvore, filho1);
+
+    // Filho 2 (posição 2)
+    No *filho2 = criaNo(arvore);
+    filho2->posicao_arq_binario = 2;
+    filho2->eh_folha = 0;
+    filho2->chaves[0] = 40;
+    filho2->chaves[1] = 50;
+    filho2->valores[0] = 400;
+    filho2->valores[1] = 500;
+    filho2->numero_chaves = 2;
+    filho2->filhos[0] = 7;  // Neto 4 (posição 7)
+    filho2->filhos[1] = 8;  // Neto 5 (posição 8)
+    filho2->filhos[2] = 9;  // Neto 6 (posição 9)
+    filho2->pai_offset = 0; // Pai é a raiz (posição 0)
+    disk_write(arvore, filho2);
+
+    // Filho 3 (posição 3)
+    No *filho3 = criaNo(arvore);
+    filho3->posicao_arq_binario = 3;
+    filho3->eh_folha = 0;
+    filho3->chaves[0] = 70;
+    filho3->valores[0] = 700;
+    filho3->numero_chaves = 1;
+    filho3->filhos[0] = 10; // Neto 7 (posição 10)
+    filho3->filhos[1] = 11; // Neto 8 (posição 11)
+    filho3->pai_offset = 0; // Pai é a raiz (posição 0)
+    disk_write(arvore, filho3);
+
+    // ------------------------
+    // Nível 2: Netos (Folhas)
+    // ------------------------
+
+    // Neto 1 (posição 4)
+    No *neto1 = criaNo(arvore);
+    neto1->posicao_arq_binario = 4;
+    neto1->eh_folha = 1;
+    neto1->chaves[0] = 5;
+    neto1->valores[0] = 50;
+    neto1->numero_chaves = 1;
+    neto1->pai_offset = 1; // Pai é o filho1 (posição 1)
+    disk_write(arvore, neto1);
+
+    // Neto 2 (posição 5)
+    No *neto2 = criaNo(arvore);
+    neto2->posicao_arq_binario = 5;
+    neto2->eh_folha = 1;
+    neto2->chaves[0] = 15;
+    neto2->valores[0] = 150;
+    neto2->numero_chaves = 1;
+    neto2->pai_offset = 1;
+    disk_write(arvore, neto2);
+
+    // Neto 3 (posição 6)
+    No *neto3 = criaNo(arvore);
+    neto3->posicao_arq_binario = 6;
+    neto3->eh_folha = 1;
+    neto3->chaves[0] = 25;
+    neto3->valores[0] = 250;
+    neto3->numero_chaves = 1;
+    neto3->pai_offset = 1;
+    disk_write(arvore, neto3);
+
+    // Neto 4 (posição 7)
+    No *neto4 = criaNo(arvore);
+    neto4->posicao_arq_binario = 7;
+    neto4->eh_folha = 1;
+    neto4->chaves[0] = 35;
+    neto4->valores[0] = 350;
+    neto4->numero_chaves = 1;
+    neto4->pai_offset = 2; // Pai é o filho2 (posição 2)
+    disk_write(arvore, neto4);
+
+    // Neto 5 (posição 8)
+    No *neto5 = criaNo(arvore);
+    neto5->posicao_arq_binario = 8;
+    neto5->eh_folha = 1;
+    neto5->chaves[0] = 45;
+    neto5->valores[0] = 450;
+    neto5->numero_chaves = 1;
+    neto5->pai_offset = 2;
+    disk_write(arvore, neto5);
+
+    // Neto 6 (posição 9)
+    No *neto6 = criaNo(arvore);
+    neto6->posicao_arq_binario = 9;
+    neto6->eh_folha = 1;
+    neto6->chaves[0] = 55;
+    neto6->valores[0] = 550;
+    neto6->numero_chaves = 1;
+    neto6->pai_offset = 2;
+    disk_write(arvore, neto6);
+
+    // Neto 7 (posição 10)
+    No *neto7 = criaNo(arvore);
+    neto7->posicao_arq_binario = 10;
+    neto7->eh_folha = 1;
+    neto7->chaves[0] = 65;
+    neto7->valores[0] = 650;
+    neto7->numero_chaves = 1;
+    neto7->pai_offset = 3; // Pai é o filho3 (posição 3)
+    disk_write(arvore, neto7);
+
+    // Neto 8 (posição 11)
+    No *neto8 = criaNo(arvore);
+    neto8->posicao_arq_binario = 11;
+    neto8->eh_folha = 1;
+    neto8->chaves[0] = 75;
+    neto8->valores[0] = 750;
+    neto8->numero_chaves = 1;
+    neto8->pai_offset = 3;
+    disk_write(arvore, neto8);
+
+    // Libera todos os nós da memória
+    liberaNo(raiz);
+    liberaNo(filho1);
+    liberaNo(filho2);
+    liberaNo(filho3);
+    liberaNo(neto1);
+    liberaNo(neto2);
+    liberaNo(neto3);
+    liberaNo(neto4);
+    liberaNo(neto5);
+    liberaNo(neto6);
+    liberaNo(neto7);
+    liberaNo(neto8);
+}
+
+void imprimeArvore(ArvoreB *arvore, int posicao, int nivel) {
+    No *no = disk_read(arvore, posicao);
+    
+    // Imprime indentação
+    for (int i = 0; i < nivel; i++) printf("  ");
+    
+    // Imprime chaves
+    printf("Nó %d (nivel %d): [", posicao, nivel);
+    for (int i = 0; i < no->numero_chaves; i++) {
+        printf("%d", no->chaves[i]);
+        if (i < no->numero_chaves - 1) printf(", ");
+    }
+    printf("]\n");
+
+    // Imprime filhos recursivamente
+    if (!no->eh_folha) {
+        for (int i = 0; i <= no->numero_chaves; i++) {
+            imprimeArvore(arvore, no->filhos[i], nivel + 1);
+        }
+    }
+}
 
 // cria árvore
 ArvoreB *criaArvoreB(int ordem, FILE *binario)

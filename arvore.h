@@ -9,6 +9,8 @@ typedef struct no No;
 
 /* funcoes da arvore*/
 ArvoreB *criaArvoreB(int ordem, FILE *binario);
+void criaArvoreManual(ArvoreB *arvore);
+void imprimeArvore(ArvoreB *arvore, int posicao, int nivel);      
 ArvoreB *insereArvore(ArvoreB *arvore, int chave, int dado);
 ArvoreB *divideArvore(int offset, ArvoreB *sentinela);
 int retiraArvore(ArvoreB *arvore, int chave); // PDF do professor não imprime nada na remoção, então é possível que possa ser void
