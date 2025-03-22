@@ -3,34 +3,27 @@
 
 #include <stdio.h>
 
-typedef struct __arvoreB ArvoreB;
+typedef struct arvoreB ArvoreB;
 
-typedef struct no No;
+/* Cria uma nova árvore B com a ordem especificada */
+ArvoreB* criaArvoreB(int ordem, FILE* arquivoBinario);
 
-/* funcoes da arvore*/
-ArvoreB *criaArvoreB(int ordem, FILE *binario);
-ArvoreB *insereArvore(ArvoreB *sentinela, int chave, int valor);
-void criaArvoreManual(ArvoreB *arvore);
-void imprimeArvore(ArvoreB *arvore, int posicao, int nivel);      
-ArvoreB *divideArvore(int offset, ArvoreB *sentinela);
-int retiraArvore(ArvoreB *arvore, int chave); // PDF do professor não imprime nada na remoção, então é possível que possa ser void
-int buscaArvore(ArvoreB *arvore, int chave); //Retorna o conteúdo da chave (se não existir, retorna -1??) nao sei se terao registros negativos
-void printaResumo(ArvoreB *arvore);
-int retornaOffsetRaiz(ArvoreB *arv);
+/* Insere uma chave e valor na árvore. Retorna a árvore atualizada */
+ArvoreB* insereArvore(ArvoreB* arvore, int chave, int valor);
 
-/* FUNÇÕES DE NÓ*/
-No *criaNo(ArvoreB *arv);
-No *criaNoVazio(ArvoreB *arv);
-int getOffset(No *no);
-char getLotado(No *no);
-void liberaNo(No *no);
-void printaChaves(No *no);
-void printaValores(No *no);
+/* Remove uma chave da árvore. Retorna o valor associado ou -1 se não encontrado */
+int retiraArvore(ArvoreB* arvore, int chave);
 
-/* FUNÇÕES DISK*/
-void disk_write(ArvoreB *arvore, No *node);
-No *disk_read(ArvoreB *arvore, int posicao);
-void printaFilhos(No *no);
-void teste();
+/* Busca uma chave na árvore. Retorna o valor associado ou -1 se não encontrado */
+int buscaArvore(ArvoreB* arvore, int chave);
+
+/* Imprime a estrutura da árvore para debug */
+void imprimeArvore(ArvoreB* arvore, int posicaoRaiz, int nivel);
+
+/* Retorna o offset da raiz no arquivo binário */
+int retornaOffsetRaiz(ArvoreB* arvore);
+
+/* Libera a memória da estrutura da árvore (não fecha o arquivo) */
+void liberaArvore(ArvoreB* arvore);
 
 #endif

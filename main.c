@@ -20,11 +20,11 @@ int main(int argc, char **argv)
     //     LEITURA DE ARQUIVOS
     // -----------------------
     // */
-    // if (argc < 3)
-    // {
-    //     printf("É preciso fornecer um arquivo de entrada e outro de saída para rodar o programa!\nRode o programa no formato ./trab2 <entrada.txt> <saida.txt>\n");
-    //     exit(1);
-    // }
+    if (argc < 3)
+    {
+        printf("É preciso fornecer um arquivo de entrada e outro de saída para rodar o programa!\nRode o programa no formato ./trab2 <entrada.txt> <saida.txt>\n");
+        exit(1);
+    }
 
     FILE *input, *output, *binary;
 
@@ -83,7 +83,11 @@ int main(int argc, char **argv)
         else if (comando == 'B')
         {
             fscanf(input, "%d%*[^RBI]", &chave);
-            // buscaArvore(sentinela, chave);
+            int registro = buscaArvore(sentinela, chave);
+            if (registro == -1) //Não encontrado
+                printf ("Chave não encontrada\n");
+            else
+                printf ("Chave encontrada: %d\n", registro);
         }
         else
         {
@@ -91,6 +95,7 @@ int main(int argc, char **argv)
             fscanf(input, "%*[^IRB]");
         }
     }
+    imprimeArvore(sentinela, 0, 0);
 
     fclose(input);
     fclose(output);
