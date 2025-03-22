@@ -308,6 +308,10 @@ int retornaOffsetRaiz(ArvoreB *arv)
     return arv->offsetRaiz;
 }
 
+int buscaArvore(ArvoreB *arvore, int chave) {
+    No* raiz = disk_read(arvore, arvore->offsetRaiz);
+}
+
 ArvoreB *insereArvore(ArvoreB *sentinela, int chave, int valor)
 {
     No *aux = disk_read(sentinela, 0);
@@ -684,6 +688,12 @@ void teste()
 
 
 /*------------------------ FUNÇÕES AUXILIARES ------------------------*/
+
+static int percorreNo (No* no, int chave) {
+    int i = 0;
+    while (chave > no->chaves[i] && i < no->numero_chaves) i++;
+    return i;
+}
 
 // static No* getPredecessor(ArvoreB *arvore, No *no) {
 //     No *atual = no;
