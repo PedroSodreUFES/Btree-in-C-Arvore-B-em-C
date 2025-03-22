@@ -93,7 +93,7 @@ int main(int argc, char **argv)
         }
     }
 
-    Fila *f = criaFila(sentinela);
+    imprimeFila(sentinela);
 
     fclose(input);
     fclose(output);

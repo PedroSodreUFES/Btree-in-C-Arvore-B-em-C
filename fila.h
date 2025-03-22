@@ -5,8 +5,6 @@
 
 typedef struct fila Fila;
 
-Fila* criaFila(ArvoreB *arv);
-
 void imprimeFila(ArvoreB *arv);
 
 #endif

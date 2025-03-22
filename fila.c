@@ -6,11 +6,10 @@
 struct fila
 {
     int **mat;
-    int linhas;
     int *colunas;
 };
 
-Fila *criaFila(ArvoreB *arv)
+void imprimeFila(ArvoreB *arv)
 {
     Fila *fila = malloc(sizeof(Fila));
 
@@ -22,16 +21,19 @@ Fila *criaFila(ArvoreB *arv)
         exit(1);
     }
 
-    fila->mat = (int **)malloc(1 * sizeof(int *));
+    fila->mat = (int **)malloc(1 *sizeof(int*));
+    fila->colunas = malloc(sizeof(int));
+
     int numero_de_filhos_raiz = retornaNumChaves(no) + 1;
-    fila->mat[0] = malloc(numero_de_filhos_raiz * sizeof(int));
+
+    fila->mat[0] = calloc(numero_de_filhos_raiz, sizeof(int));
     int *aux = retornaFilhos(no);
+    
     for (int i = 0; i < numero_de_filhos_raiz; i++)
     {
         fila->mat[0][i] = aux[i];
     }
 
-    fila->colunas = malloc(sizeof(int));
 
     int row = 1, coluna = 0, i = 0, flag = 0;
     
@@ -60,6 +62,7 @@ Fila *criaFila(ArvoreB *arv)
 
         // aumenta mais um na linha e da realloc;
         row++;
+        fila->mat = realloc(fila->mat, row * sizeof(int*));
         fila->mat[row-1] = malloc(coluna * sizeof(int));
         // adiciona os filhos do no na coluna
         int j = 0, k;
@@ -70,7 +73,6 @@ Fila *criaFila(ArvoreB *arv)
             aux2 = disk_read(arv, fila->mat[row - 2][i]);
             soma += retornaNumChaves(aux2) + 1;
             int *filhos = retornaFilhos(aux2);
-            int n = retornaNumChaves(aux2) + 1;
             for (j, k = 0; j < soma; j++, k++)
             {
                 fila->mat[row - 1][j] = filhos[k];
@@ -79,10 +81,10 @@ Fila *criaFila(ArvoreB *arv)
         }
         fila->colunas = realloc(fila->colunas, (row-1) * sizeof(int));
         fila->colunas[row-2] = numero_de_filhos_raiz;
-        printf("%d", coluna);
         numero_de_filhos_raiz = coluna;
     }
 
+    // imprime a raiz
     No *raiz = disk_read(arv, 0);
     int *rootKeys = retornaChaves(raiz);
     int numChavesRaiz = retornaNumChaves(raiz);
@@ -93,21 +95,31 @@ Fila *criaFila(ArvoreB *arv)
     printf("]\n");
     liberaNo(raiz);
 
+    // imprime o resto
     int j;
-    printf("%d\n", row);
     for(i=0 ; i<row-1 ; i++){
         for(j=0 ; j<fila->colunas[i] ; j++){
             printf("[");
-            No *no = disk_read(arv, fila->mat[i][j]);
+            no = disk_read(arv, fila->mat[i][j]);
             rootKeys = retornaChaves(no);
             numChavesRaiz = retornaNumChaves(no);
             for(int k=0; k<numChavesRaiz ; k++){
                 printf("key: %d, ", rootKeys[k]);
             }
+            liberaNo(no);
             printf("] ");
-            liberaNo(raiz);
         }
         printf("\n");
     }
-    return fila;
+    
+
+    // libera a fila
+    if(fila != NULL){
+        for(int i = 0; i<row ; i++){
+            if(fila->mat[i] != NULL) free(fila->mat[i]);
+        }
+        if(fila->mat != NULL)free(fila->mat);
+        if(fila->colunas != NULL) free(fila->colunas);
+        free(fila);
+    }
 }
