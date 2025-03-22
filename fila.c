@@ -36,6 +36,7 @@ Fila *criaFila(ArvoreB *arv)
     int row = 1, coluna = 0, i = 0, flag = 0;
     
     // se a raiz for folha, nem precisa checar nada
+    if(retornaFolha(no) == '1') flag=1;
     liberaNo(no);
 
     No *aux2;
