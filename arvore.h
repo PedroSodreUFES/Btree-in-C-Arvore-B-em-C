@@ -28,6 +28,7 @@ char retornaFolha(No *no);
 int *retornaFilhos(No *no);
 int retornaNumChaves(No *no);
 void buscaNo(ArvoreB *arv, int chave);
+int *retornaChaves(No *no);
 
 /* FUNÇÕES DISK*/
 void disk_write(ArvoreB *arvore, No *node);

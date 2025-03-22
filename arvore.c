@@ -460,6 +460,10 @@ int retornaNumChaves(No *no)
     return no->numero_chaves;
 }
 
+int *retornaChaves(No *no){
+    return no->chaves;
+}
+
 void teste()
 {
     FILE *bin = fopen("binario.bin", "w+b");
