@@ -21,11 +21,11 @@ int main(int argc, char **argv)
     //     LEITURA DE ARQUIVOS
     // -----------------------
     // */
-    // if (argc < 3)
-    // {
-    //     printf("É preciso fornecer um arquivo de entrada e outro de saída para rodar o programa!\nRode o programa no formato ./trab2 <entrada.txt> <saida.txt>\n");
-    //     exit(1);
-    // }
+    if (argc < 3)
+    {
+        printf("É preciso fornecer um arquivo de entrada e outro de saída para rodar o programa!\nRode o programa no formato ./trab2 <entrada.txt> <saida.txt>\n");
+        exit(1);
+    }
 
     FILE *input, *output, *binary;
 
@@ -59,9 +59,6 @@ int main(int argc, char **argv)
     fscanf(input, "%d%*[^IBR]", &numero_de_comandos);
 
     ArvoreB *sentinela = criaArvoreB(ordem_da_arvore, binary);
-    No *raiz = criaNo(sentinela);
-    disk_write(sentinela, raiz);
-    liberaNo(raiz);
 
     // processa os comandos
     char comando;
@@ -79,12 +76,16 @@ int main(int argc, char **argv)
         else if (comando == 'R')
         {
             fscanf(input, "%d%*[^RBI]", &chave);
-            // aux = retiraArvore(sentinela, chave);
+            sentinela = retiraArvore(sentinela, chave);
         }
         else if (comando == 'B')
         {
             fscanf(input, "%d%*[^RBI]", &chave);
-            buscaNo(sentinela, chave);
+            int registro = buscaArvore(sentinela, chave);
+            if (registro == -1) //Não encontrado
+                fprintf (output, "O REGISTRO NAO ESTA NA ARVORE!\n");
+            else
+                fprintf (output, "O REGISTRO ESTA NA ARVORE!\n");
         }
         else
         {
@@ -100,6 +101,5 @@ int main(int argc, char **argv)
     fclose(output);
     fclose(binary);
     free(sentinela);
-
-    return 0;
+  return 0;
 }
