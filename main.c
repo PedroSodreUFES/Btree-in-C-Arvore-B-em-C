@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "arvore.h"
+#include "fila.h"
 
 /*
        -----------------------------
@@ -91,8 +92,10 @@ int main(int argc, char **argv)
             printf("Comando inválido detectado!\nO comando %c não tem uma definicao!\n", comando);
             fscanf(input, "%*[^IRB]");
         }
+        printaChaves(disk_read(sentinela, 0));
     }
-    imprimeArvore(sentinela, 0, 0);
+
+    imprimeFila(sentinela);
 
     fclose(input);
     fclose(output);

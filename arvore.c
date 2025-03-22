@@ -9,7 +9,6 @@
 #define MAX_CHAVES(ordem) (ordem - 1)
 
 /*------------------------ Estruturas ------------------------*/
-typedef struct no No;
 
 struct no {
     int numero_chaves;
@@ -34,9 +33,6 @@ struct arvoreB {
 static No* criaNo(ArvoreB* arvore);
 static No* criaNoVazio(ArvoreB* arvore);
 static void liberaNo(No* no);
-
-static void disk_write(ArvoreB* arvore, No* node);
-static No* disk_read(ArvoreB* arvore, int posicao);
 
 static ArvoreB* divideArvore(int offset, ArvoreB* arvore);
 static int percorreNo(No* no, int chave);

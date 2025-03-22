@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 typedef struct arvoreB ArvoreB;
+typedef struct no No;
 
 /* Cria uma nova árvore B com a ordem especificada */
 ArvoreB* criaArvoreB(int ordem, FILE* arquivoBinario);
@@ -25,5 +26,9 @@ int retornaOffsetRaiz(ArvoreB* arvore);
 
 /* Libera a memória da estrutura da árvore (não fecha o arquivo) */
 void liberaArvore(ArvoreB* arvore);
+
+/* Escrita e leitura de nós no arquivo binário */
+void disk_write(ArvoreB* arvore, No* node);
+No* disk_read(ArvoreB* arvore, int posicao);
 
 #endif
