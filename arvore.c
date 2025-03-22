@@ -5,7 +5,7 @@
 #include <limits.h>
 #include <math.h>
 
-#define MIN_CHAVES(ordem) (ceil(((ordem)/2 - 1))) // ceil arredonda para cima
+#define MIN_CHAVES(ordem) (ceil(((ordem)/2.0 - 1))) // ceil arredonda para cima
 #define MAX_CHAVES(ordem) (ordem - 1)
 
 /*------------------------ Estruturas ------------------------*/
@@ -41,13 +41,14 @@ static No* disk_read(ArvoreB* arvore, int posicao);
 static ArvoreB* divideArvore(int offset, ArvoreB* arvore);
 static int percorreNo(No* no, int chave);
 
-static int removeChave(ArvoreB* arvore, No* no, int chave);
-static void removeDaFolha(No* no, int indice);
-static void removeDeNoInterno(ArvoreB* arvore, No* no, int indice);
-static void fundirNos(ArvoreB* arvore, No* pai, int indice);
-static void tratarUnderflow(ArvoreB* arvore, No* pai, int indice);
-static No* getPredecessor(ArvoreB* arvore, No* no);
-static No* getSucessor(ArvoreB* arvore, No* no);
+static ArvoreB* removeChave(ArvoreB* arvore, No* no, int chave);
+// static void removeDaFolha(No* no, int indice);
+// static void removeDeNoInterno(ArvoreB* arvore, No* no, int indice);
+static ArvoreB *garanteMinimo(ArvoreB *sentinela, No *pai, int idx);
+static ArvoreB* fundeNos(ArvoreB* arvore, No* pai, int indice);
+static ArvoreB* trataUnderflow(ArvoreB* arvore, No* no);
+static int getPredecessor(ArvoreB* arvore, No* no);
+static int getSucessor(ArvoreB* arvore, No* no);
 
 /*------------------------ Implementação Árvore ------------------------*/
 ArvoreB *criaArvoreB(int ordem, FILE *binario)
@@ -155,31 +156,16 @@ int buscaArvore(ArvoreB *arvore, int chave) {
     return -1; // Não encontrado
 }
 
-int retiraArvore(ArvoreB *arvore, int chave) {
-    if (arvore->numero_nos == 0) 
-        return -1;
+ArvoreB* retiraArvore(ArvoreB *sentinela, int chave) {
+    if (sentinela->numero_nos == 0) 
+        return NULL;
 
-    No* raiz = disk_read(arvore, 0);
-    int registro = removeChave(arvore, raiz, chave);
-
-    // Caso especial: raiz vazia
-    if (raiz->numero_chaves == 0 && !raiz->eh_folha) {
-        int nova_raiz_pos = raiz->filhos[0];
-        No* nova_raiz = disk_read(arvore, nova_raiz_pos);
-        nova_raiz->posicao_arq_binario = 0;
-        nova_raiz->pai_offset = -1; // Nova raiz não tem pai
-        disk_write(arvore, nova_raiz);
+    No* raiz = disk_read(sentinela, sentinela->offsetRaiz);
+    sentinela = removeChave(sentinela, raiz, chave);
         
-        // Atualiza a árvore
-        arvore->numero_nos--; 
-        liberaNo(raiz);
-        liberaNo(nova_raiz);
-        return registro;
-    } 
-        
-    disk_write(arvore, raiz); // Atualiza a raiz se não foi substituída
+    disk_write(sentinela, raiz); // Atualiza a raiz se não foi substituída
     liberaNo(raiz);
-    return registro;
+    return sentinela;
 }
 
 /*------------------------ Funções de Nó ------------------------*/
@@ -437,215 +423,282 @@ ArvoreB *divideArvore(int offset, ArvoreB *sentinela)
 }
 
 /*------------------------ Funções Remoção ---------------------------*/
+// Função recursiva para remover uma chave
+static ArvoreB *removeChave(ArvoreB *sentinela, No *no, int chave) {
+    int i = 0;
+    while (i < no->numero_chaves && chave > no->chaves[i]) {
+        i++;
+    }
 
-// Função recursiva que analisa diversos cenários e chama funções auxiliares
-static int removeChave(ArvoreB *arvore, No *no, int chave) {
-    int indice = percorreNo(no, chave);
-    int registro = -1;
-
-    // Caso 1: Chave encontrada
-    if (indice < no->numero_chaves && no->chaves[indice] == chave) {
-        registro = no->valores[indice];
-
+    // Caso 1: A chave está no nó atual
+    if (i < no->numero_chaves && chave == no->chaves[i]) {
         if (no->eh_folha) {
-            removeDaFolha(no, indice);
-            // Verifica underflow após remoção
-            if (no->numero_chaves < MIN_CHAVES(arvore->ordem)) {
-                tratarUnderflow(arvore, no, indice);
+            // Caso 1a: A chave está em um nó folha
+            for (int j = i; j < no->numero_chaves - 1; j++) {
+                no->chaves[j] = no->chaves[j + 1];
+                no->valores[j] = no->valores[j + 1];
+            }
+            no->numero_chaves--;
+            disk_write(sentinela, no);
+
+            if (no->numero_chaves < (sentinela->ordem - 1) / 2) {
+                // Tratar underflow
+                sentinela = trataUnderflow(sentinela, no);
             }
         } else {
-            removeDeNoInterno(arvore, no, indice);
-        }
-    }
-    // Caso 2: Descer na árvore
-    else {
-        if (no->eh_folha) return -1;
+            // Caso 1b: A chave está em um nó interno
+            No *filhoEsq = disk_read(sentinela, no->filhos[i]);
+            No *filhoDir = disk_read(sentinela, no->filhos[i + 1]);
 
-        No *filho = disk_read(arvore, no->filhos[indice]);
-        if (filho->numero_chaves <= MIN_CHAVES(arvore->ordem)) {
-            tratarUnderflow(arvore, no, indice);
-            // Re-lê o filho após reestruturação
-            liberaNo(filho);
-            filho = disk_read(arvore, no->filhos[indice]);
+            if (filhoEsq->numero_chaves > (sentinela->ordem - 1) / 2) {
+                // Substituir pelo predecessor
+                int pred = getPredecessor(sentinela, filhoEsq);
+                no->chaves[i] = pred;
+                disk_write(sentinela, no);
+                sentinela = removeChave(sentinela, filhoEsq, pred);
+            } else if (filhoDir->numero_chaves > (sentinela->ordem - 1) / 2) {
+                // Substituir pelo sucessor
+                int succ = getSucessor(sentinela, filhoDir);
+                no->chaves[i] = succ;
+                disk_write(sentinela, no);
+                sentinela = removeChave(sentinela, filhoDir, succ);
+            } else {
+                // Fundir os filhos e remover a chave
+                sentinela = fundeNos(sentinela, no, i);
+                sentinela = removeChave(sentinela, filhoEsq, chave);
+            }
+            liberaNo(filhoEsq);
+            liberaNo(filhoDir);
+        }
+    } else {
+        // Caso 2: A chave não está no nó atual
+        if (no->eh_folha) {
+            // A chave não existe na árvore
+            return sentinela;
         }
 
-        registro = removeChave(arvore, filho, chave);
+        No *filho = disk_read(sentinela, no->filhos[i]);
+        if (filho->numero_chaves == (sentinela->ordem - 1) / 2) {
+            // Garantir que o filho tenha pelo menos o mínimo de chaves
+            sentinela = garanteMinimo(sentinela, no, i);
+            filho = disk_read(sentinela, no->filhos[i]);
+        }
+        sentinela = removeChave(sentinela, filho, chave);
         liberaNo(filho);
     }
 
-    disk_write(arvore, no);
-    return registro;
+    return sentinela;
 }
 
-// Remove a chave de um nó folha
-static void removeDaFolha(No *no, int indice) {
-    for (int i = indice + 1; i < no->numero_chaves; i++) {
-        no->chaves[i - 1] = no->chaves[i]; // Desloca chaves para a esquerda
-        no->valores[i - 1] = no->valores[i]; // Desloca valores para a esquerda
-    }
-    no->numero_chaves--; // Atualiza o número de chaves
-}
-
-// Remove a chave de um nó interno conforme a especificação do algoritmo
-static void removeDeNoInterno(ArvoreB *arvore, No *no, int indice) {
-    int chave = no->chaves[indice];
-    No *filho_esq = disk_read(arvore, no->filhos[indice]);
-    No *filho_dir = disk_read(arvore, no->filhos[indice + 1]);
-
-    // Subcaso 2A: Filho esquerdo tem chaves suficientes
-    if (filho_esq->numero_chaves > MIN_CHAVES(arvore->ordem)) {
-        No* predecessor = getPredecessor(arvore, filho_esq);
-        no->chaves[indice] = predecessor->chaves[predecessor->numero_chaves - 1];
-        no->valores[indice] = predecessor->valores[predecessor->numero_chaves - 1];
-
-        disk_write(arvore, no);
-        removeChave(arvore, filho_esq, predecessor->chaves[predecessor->numero_chaves - 1]); // Remove a chave do filho esquerdo (até entao só havíamos copiado)
-        
-        liberaNo(predecessor);
-    }
-    // Subcaso 2B: Filho direito tem chaves suficientes
-    else if (filho_dir->numero_chaves > MIN_CHAVES(arvore->ordem)) {
-        No* sucessor = getSucessor(arvore, filho_dir);
-        no->chaves[indice] = sucessor->chaves[0];
-        no->valores[indice] = sucessor->valores[0];
-        liberaNo(sucessor);
-
-        disk_write(arvore, no);
-        removeChave(arvore, filho_dir, sucessor->chaves[0]); // Remove a chave do filho direito (até entao só havíamos copiado)
-    }
-    // Subcaso 2C: Fusão necessária
-    else {
-        fundirNos(arvore, no, indice);
-        removeChave(arvore, filho_esq, chave);
-    }
-
-    liberaNo(filho_esq);
-    liberaNo(filho_dir);
-}
-
-// Funde dois nós e remove a chave do pai
-static void fundirNos(ArvoreB *arvore, No *pai, int indice) {
-    No *filho_esq = disk_read(arvore, pai->filhos[indice]);
-    No *filho_dir = disk_read(arvore, pai->filhos[indice + 1]);
-
-    //Move a chave do pai para o filho esquerdo
-    filho_esq->chaves[filho_esq->numero_chaves] = pai->chaves[indice];
-    filho_esq->valores[filho_esq->numero_chaves] = pai->valores[indice];
-    filho_esq->numero_chaves++;
-
-    //Copia chaves e valores do filho direito para o esquerdo
-    for (int i = 0; i < filho_dir->numero_chaves; i++) {
-        filho_esq->chaves[filho_esq->numero_chaves + i] = filho_dir->chaves[i];
-        filho_esq->valores[filho_esq->numero_chaves + i] = filho_dir->valores[i];
-    }
-
-    //Copia ponteiros dos filhos (se não forem folhas)
-    if (!filho_esq->eh_folha) {
-        for (int i = 0; i <= filho_dir->numero_chaves; i++) {
-            filho_esq->filhos[filho_esq->numero_chaves + i] = filho_dir->filhos[i];
+// Função para tratar underflow em um nó
+static ArvoreB *trataUnderflow(ArvoreB *sentinela, No *no) {
+    if (no->pai_offset == -1) {
+        // Caso especial: nó é a raiz
+        if (no->numero_chaves == 0) {
+            // A raiz ficou vazia, atualizar a raiz
+            sentinela->offsetRaiz = no->filhos[0];
+            liberaNo(no);
         }
+        return sentinela;
     }
 
-    // Atualiza o número de chaves do filho esquerdo
-    filho_esq->numero_chaves += filho_dir->numero_chaves;
+    No *pai = disk_read(sentinela, no->pai_offset);
+    int idx = 0;
+    while (idx < pai->numero_chaves && pai->filhos[idx] != no->posicao_arq_binario) {
+        idx++;
+    }
 
-    //Remove a chave do pai
-    for (int i = indice; i < pai->numero_chaves - 1; i++) {
+    // Tentar emprestar do irmão esquerdo
+    if (idx > 0) {
+        No *irmaoEsq = disk_read(sentinela, pai->filhos[idx - 1]);
+        if (irmaoEsq->numero_chaves > (sentinela->ordem - 1) / 2) {
+            // Emprestar do irmão esquerdo
+            for (int i = no->numero_chaves; i > 0; i--) {
+                no->chaves[i] = no->chaves[i - 1];
+                no->valores[i] = no->valores[i - 1];
+            }
+            no->chaves[0] = pai->chaves[idx - 1];
+            no->valores[0] = pai->valores[idx - 1];
+            no->numero_chaves++;
+
+            pai->chaves[idx - 1] = irmaoEsq->chaves[irmaoEsq->numero_chaves - 1];
+            pai->valores[idx - 1] = irmaoEsq->valores[irmaoEsq->numero_chaves - 1];
+            irmaoEsq->numero_chaves--;
+
+            disk_write(sentinela, no);
+            disk_write(sentinela, pai);
+            disk_write(sentinela, irmaoEsq);
+            liberaNo(irmaoEsq);
+            return sentinela;
+        }
+        liberaNo(irmaoEsq);
+    }
+
+    // Tentar emprestar do irmão direito
+    if (idx < pai->numero_chaves) {
+        No *irmaoDir = disk_read(sentinela, pai->filhos[idx + 1]);
+        if (irmaoDir->numero_chaves > (sentinela->ordem - 1) / 2) {
+            // Emprestar do irmão direito
+            no->chaves[no->numero_chaves] = pai->chaves[idx];
+            no->valores[no->numero_chaves] = pai->valores[idx];
+            no->numero_chaves++;
+
+            pai->chaves[idx] = irmaoDir->chaves[0];
+            pai->valores[idx] = irmaoDir->valores[0];
+
+            for (int i = 0; i < irmaoDir->numero_chaves - 1; i++) {
+                irmaoDir->chaves[i] = irmaoDir->chaves[i + 1];
+                irmaoDir->valores[i] = irmaoDir->valores[i + 1];
+            }
+            irmaoDir->numero_chaves--;
+
+            disk_write(sentinela, no);
+            disk_write(sentinela, pai);
+            disk_write(sentinela, irmaoDir);
+            liberaNo(irmaoDir);
+            return sentinela;
+        }
+        liberaNo(irmaoDir);
+    }
+
+    // Fundir com um irmão
+    if (idx > 0) {
+        // Fundir com o irmão esquerdo
+        sentinela = fundeNos(sentinela, pai, idx - 1);
+    } else {
+        // Fundir com o irmão direito
+        sentinela = fundeNos(sentinela, pai, idx);
+    }
+
+    liberaNo(pai);
+    return sentinela;
+}
+
+// Função para fundir dois nós
+static ArvoreB *fundeNos(ArvoreB *sentinela, No *pai, int idx) {
+    No *noEsq = disk_read(sentinela, pai->filhos[idx]);
+    No *noDir = disk_read(sentinela, pai->filhos[idx + 1]);
+
+    // Mover a chave do pai para o nó esquerdo
+    noEsq->chaves[noEsq->numero_chaves] = pai->chaves[idx];
+    noEsq->valores[noEsq->numero_chaves] = pai->valores[idx];
+    noEsq->numero_chaves++;
+
+    // Copiar chaves e valores do nó direito para o nó esquerdo
+    for (int i = 0; i < noDir->numero_chaves; i++) {
+        noEsq->chaves[noEsq->numero_chaves + i] = noDir->chaves[i];
+        noEsq->valores[noEsq->numero_chaves + i] = noDir->valores[i];
+    }
+    noEsq->numero_chaves += noDir->numero_chaves;
+
+    // Atualizar o pai
+    for (int i = idx; i < pai->numero_chaves - 1; i++) {
         pai->chaves[i] = pai->chaves[i + 1];
         pai->valores[i] = pai->valores[i + 1];
+        pai->filhos[i + 1] = pai->filhos[i + 2];
     }
-
-    // Ajusta os ponteiros dos filhos do pai
-    for (int i = indice + 1; i < pai->numero_chaves; i++) {
-        pai->filhos[i] = pai->filhos[i + 1];
-    }
-
     pai->numero_chaves--;
 
-    // Passo 7: Atualiza o arquivo
-    disk_write(arvore, pai);
-    disk_write(arvore, filho_esq);
+    disk_write(sentinela, noEsq);
+    disk_write(sentinela, pai);
+    disk_write(sentinela, noDir);
 
-    // Passo 8: Libera memória
-    liberaNo(filho_dir);
-    arvore->numero_nos--; // O filho direito foi removido
+    liberaNo(noDir);
+    return sentinela;
 }
 
-// Trata o underflow de um nó, isto é, o número de chaves é menor que o mínimo
-static void tratarUnderflow(ArvoreB *arvore, No *pai, int indice) {
-    No *filho = disk_read(arvore, pai->filhos[indice]);
+// Função para garantir que um nó tenha pelo menos o mínimo de chaves
+static ArvoreB *garanteMinimo(ArvoreB *sentinela, No *pai, int idx) {
+    No *no = disk_read(sentinela, pai->filhos[idx]);
 
-    // Tenta pegar emprestado do irmão esquerdo
-    if (indice > 0) {
-        No *irmao_esq = disk_read(arvore, pai->filhos[indice - 1]);
-        if (irmao_esq->numero_chaves > MIN_CHAVES(arvore->ordem)) {
-            // Rotação direita
-            for (int i = filho->numero_chaves; i > 0; i--) {
-                filho->chaves[i] = filho->chaves[i - 1];
-                filho->valores[i] = filho->valores[i - 1];
-            }
-
-            // Move a chave do pai para o filho
-            filho->chaves[0] = pai->chaves[indice - 1];
-            filho->valores[0] = pai->valores[indice - 1];
-            filho->numero_chaves++;
-
-            // Move a chave do irmão para o pai
-            pai->chaves[indice - 1] = irmao_esq->chaves[irmao_esq->numero_chaves - 1];
-            pai->valores[indice - 1] = irmao_esq->valores[irmao_esq->numero_chaves - 1];
-            irmao_esq->numero_chaves--;
-
-            disk_write(arvore, pai);
-            disk_write(arvore, filho);
-            disk_write(arvore, irmao_esq);
-
-            liberaNo(irmao_esq);
-            liberaNo(filho);
-            return;
-        }
-        liberaNo(irmao_esq);
+    if (no->numero_chaves >= (sentinela->ordem - 1) / 2) {
+        // O nó já tem chaves suficientes
+        liberaNo(no);
+        return sentinela;
     }
 
-    // Tenta pegar emprestado do irmão direito
-    if (indice < pai->numero_chaves) {
-        No *irmao_dir = disk_read(arvore, pai->filhos[indice + 1]);
-        if (irmao_dir->numero_chaves > MIN_CHAVES(arvore->ordem)) {
-            // Rotação esquerda
-            filho->chaves[filho->numero_chaves] = pai->chaves[indice];
-            filho->valores[filho->numero_chaves] = pai->valores[indice];
-            filho->numero_chaves++;
-
-            // Move a chave do irmão para o pai
-            pai->chaves[indice] = irmao_dir->chaves[0];
-            pai->valores[indice] = irmao_dir->valores[0];
-
-            // Desloca as chaves do irmão
-            for (int i = 0; i < irmao_dir->numero_chaves - 1; i++) {
-                irmao_dir->chaves[i] = irmao_dir->chaves[i + 1];
-                irmao_dir->valores[i] = irmao_dir->valores[i + 1];
+    // Tentar emprestar do irmão esquerdo
+    if (idx > 0) {
+        No *irmaoEsq = disk_read(sentinela, pai->filhos[idx - 1]);
+        if (irmaoEsq->numero_chaves > (sentinela->ordem - 1) / 2) {
+            // Emprestar do irmão esquerdo
+            for (int i = no->numero_chaves; i > 0; i--) {
+                no->chaves[i] = no->chaves[i - 1];
+                no->valores[i] = no->valores[i - 1];
             }
+            no->chaves[0] = pai->chaves[idx - 1];
+            no->valores[0] = pai->valores[idx - 1];
+            no->numero_chaves++;
 
-            irmao_dir->numero_chaves--;
+            pai->chaves[idx - 1] = irmaoEsq->chaves[irmaoEsq->numero_chaves - 1];
+            pai->valores[idx - 1] = irmaoEsq->valores[irmaoEsq->numero_chaves - 1];
+            irmaoEsq->numero_chaves--;
 
-            disk_write(arvore, pai);
-            disk_write(arvore, filho);
-            disk_write(arvore, irmao_dir);
-
-            liberaNo(irmao_dir);
-            liberaNo(filho);
-            return;
+            disk_write(sentinela, no);
+            disk_write(sentinela, pai);
+            disk_write(sentinela, irmaoEsq);
+            liberaNo(irmaoEsq);
+            liberaNo(no);
+            return sentinela;
         }
-        liberaNo(irmao_dir);
+        liberaNo(irmaoEsq);
     }
 
-    // Se não conseguiu emprestar, funde com um irmão
-    if (indice > 0) {
-        fundirNos(arvore, pai, indice - 1); // Funde com o irmão esquerdo
+    // Tentar emprestar do irmão direito
+    if (idx < pai->numero_chaves) {
+        No *irmaoDir = disk_read(sentinela, pai->filhos[idx + 1]);
+        if (irmaoDir->numero_chaves > (sentinela->ordem - 1) / 2) {
+            // Emprestar do irmão direito
+            no->chaves[no->numero_chaves] = pai->chaves[idx];
+            no->valores[no->numero_chaves] = pai->valores[idx];
+            no->numero_chaves++;
+
+            pai->chaves[idx] = irmaoDir->chaves[0];
+            pai->valores[idx] = irmaoDir->valores[0];
+
+            for (int i = 0; i < irmaoDir->numero_chaves - 1; i++) {
+                irmaoDir->chaves[i] = irmaoDir->chaves[i + 1];
+                irmaoDir->valores[i] = irmaoDir->valores[i + 1];
+            }
+            irmaoDir->numero_chaves--;
+
+            disk_write(sentinela, no);
+            disk_write(sentinela, pai);
+            disk_write(sentinela, irmaoDir);
+            liberaNo(irmaoDir);
+            liberaNo(no);
+            return sentinela;
+        }
+        liberaNo(irmaoDir);
+    }
+
+    // Fundir com um irmão
+    if (idx > 0) {
+        // Fundir com o irmão esquerdo
+        sentinela = fundeNos(sentinela, pai, idx - 1);
     } else {
-        fundirNos(arvore, pai, indice); // Funde com o irmão direito
+        // Fundir com o irmão direito
+        sentinela = fundeNos(sentinela, pai, idx);
     }
 
-    liberaNo(filho);
+    liberaNo(no);
+    return sentinela;
+}
+
+// Função para obter o predecessor de uma chave
+static int getPredecessor(ArvoreB *sentinela, No *no) {
+    while (!no->eh_folha) {
+        no = disk_read(sentinela, no->filhos[no->numero_chaves]);
+    }
+    return no->chaves[no->numero_chaves - 1];
+}
+
+// Função para obter o sucessor de uma chave
+static int getSucessor(ArvoreB *sentinela, No *no) {
+    while (!no->eh_folha) {
+        no = disk_read(sentinela, no->filhos[0]);
+    }
+    return no->chaves[0];
 }
 
 /*------------------------ Funções Auxiliares ------------------------*/
@@ -661,205 +714,8 @@ int retornaOffsetRaiz(ArvoreB *arv)
     return arv->offsetRaiz;
 }
 
-// Predecessor = maior chave da subárvore à esquerda
-static No* getPredecessor(ArvoreB *arvore, No *no) {
-    No *atual = no;
-    No *proximo = NULL;
-
-    while (!atual->eh_folha) {
-        proximo = disk_read(arvore, atual->filhos[atual->numero_chaves]);
-        if (atual != no) liberaNo(atual); // Libera nós intermediários
-        atual = proximo;
-    }
-
-    return atual;
-}
-
-// Sucessor = menor chave da subárvore à direita
-static No* getSucessor(ArvoreB *arvore, No *no) {
-    No *atual = no;
-    No *proximo = NULL;
-
-    while (!atual->eh_folha) {
-        proximo = disk_read(arvore, atual->filhos[0]);
-        if (atual != no) liberaNo(atual); // Libera nós intermediários
-        atual = proximo;
-    }
-
-    return atual;
-}
 
 /*-TESTEEEE*/
-
-void criaArvoreManual(ArvoreB *arvore) {
-    // Configurações
-    int ordem = 3;
-    arvore->ordem = ordem;
-    arvore->numero_nos = 12; // Total de nós criados
-    arvore->tam_byte_node = sizeof(No);
-
-    // ------------------------
-    // Nível 0: Raiz
-    // ------------------------
-    No *raiz = criaNo(arvore);
-    raiz->posicao_arq_binario = 0;
-    raiz->eh_folha = false;
-    raiz->chaves[0] = 30;   // Valores da raiz
-    raiz->chaves[1] = 60;
-    raiz->valores[0] = 300; // Conteúdos associados
-    raiz->valores[1] = 600;
-    raiz->numero_chaves = 2;
-    raiz->filhos[0] = 1;    // Filho 1 (posição 1)
-    raiz->filhos[1] = 2;    // Filho 2 (posição 2)
-    raiz->filhos[2] = 3;    // Filho 3 (posição 3)
-    disk_write(arvore, raiz);
-
-    // ------------------------
-    // Nível 1: Filhos da Raiz
-    // ------------------------
-
-    // Filho 1 (posição 1)
-    No *filho1 = criaNo(arvore);
-    filho1->posicao_arq_binario = 1;
-    filho1->eh_folha = 0;
-    filho1->chaves[0] = 10;
-    filho1->chaves[1] = 20;
-    filho1->valores[0] = 100;
-    filho1->valores[1] = 200;
-    filho1->numero_chaves = 2;
-    filho1->filhos[0] = 4;  // Neto 1 (posição 4)
-    filho1->filhos[1] = 5;  // Neto 2 (posição 5)
-    filho1->filhos[2] = 6;  // Neto 3 (posição 6)
-    filho1->pai_offset = 0; // Pai é a raiz (posição 0)
-    disk_write(arvore, filho1);
-
-    // Filho 2 (posição 2)
-    No *filho2 = criaNo(arvore);
-    filho2->posicao_arq_binario = 2;
-    filho2->eh_folha = 0;
-    filho2->chaves[0] = 40;
-    filho2->chaves[1] = 50;
-    filho2->valores[0] = 400;
-    filho2->valores[1] = 500;
-    filho2->numero_chaves = 2;
-    filho2->filhos[0] = 7;  // Neto 4 (posição 7)
-    filho2->filhos[1] = 8;  // Neto 5 (posição 8)
-    filho2->filhos[2] = 9;  // Neto 6 (posição 9)
-    filho2->pai_offset = 0; // Pai é a raiz (posição 0)
-    disk_write(arvore, filho2);
-
-    // Filho 3 (posição 3)
-    No *filho3 = criaNo(arvore);
-    filho3->posicao_arq_binario = 3;
-    filho3->eh_folha = 0;
-    filho3->chaves[0] = 70;
-    filho3->valores[0] = 700;
-    filho3->numero_chaves = 1;
-    filho3->filhos[0] = 10; // Neto 7 (posição 10)
-    filho3->filhos[1] = 11; // Neto 8 (posição 11)
-    filho3->pai_offset = 0; // Pai é a raiz (posição 0)
-    disk_write(arvore, filho3);
-
-    // ------------------------
-    // Nível 2: Netos (Folhas)
-    // ------------------------
-
-    // Neto 1 (posição 4)
-    No *neto1 = criaNo(arvore);
-    neto1->posicao_arq_binario = 4;
-    neto1->eh_folha = 1;
-    neto1->chaves[0] = 5;
-    neto1->valores[0] = 50;
-    neto1->chaves[1] = 10;
-    neto1->valores[1] = 100;
-    neto1->numero_chaves = 2;
-    neto1->pai_offset = 1; // Pai é o filho1 (posição 1)
-    disk_write(arvore, neto1);
-
-    // Neto 2 (posição 5)
-    No *neto2 = criaNo(arvore);
-    neto2->posicao_arq_binario = 5;
-    neto2->eh_folha = 1;
-    neto2->chaves[0] = 15;
-    neto2->valores[0] = 150;
-    neto2->numero_chaves = 1;
-    neto2->pai_offset = 1;
-    disk_write(arvore, neto2);
-
-    // Neto 3 (posição 6)
-    No *neto3 = criaNo(arvore);
-    neto3->posicao_arq_binario = 6;
-    neto3->eh_folha = 1;
-    neto3->chaves[0] = 25;
-    neto3->valores[0] = 250;
-    neto3->numero_chaves = 1;
-    neto3->pai_offset = 1;
-    disk_write(arvore, neto3);
-
-    // Neto 4 (posição 7)
-    No *neto4 = criaNo(arvore);
-    neto4->posicao_arq_binario = 7;
-    neto4->eh_folha = 1;
-    neto4->chaves[0] = 35;
-    neto4->valores[0] = 350;
-    neto4->numero_chaves = 1;
-    neto4->pai_offset = 2; // Pai é o filho2 (posição 2)
-    disk_write(arvore, neto4);
-
-    // Neto 5 (posição 8)
-    No *neto5 = criaNo(arvore);
-    neto5->posicao_arq_binario = 8;
-    neto5->eh_folha = 1;
-    neto5->chaves[0] = 45;
-    neto5->valores[0] = 450;
-    neto5->numero_chaves = 1;
-    neto5->pai_offset = 2;
-    disk_write(arvore, neto5);
-
-    // Neto 6 (posição 9)
-    No *neto6 = criaNo(arvore);
-    neto6->posicao_arq_binario = 9;
-    neto6->eh_folha = 1;
-    neto6->chaves[0] = 55;
-    neto6->valores[0] = 550;
-    neto6->numero_chaves = 1;
-    neto6->pai_offset = 2;
-    disk_write(arvore, neto6);
-
-    // Neto 7 (posição 10)
-    No *neto7 = criaNo(arvore);
-    neto7->posicao_arq_binario = 10;
-    neto7->eh_folha = 1;
-    neto7->chaves[0] = 65;
-    neto7->valores[0] = 650;
-    neto7->numero_chaves = 1;
-    neto7->pai_offset = 3; // Pai é o filho3 (posição 3)
-    disk_write(arvore, neto7);
-
-    // Neto 8 (posição 11)
-    No *neto8 = criaNo(arvore);
-    neto8->posicao_arq_binario = 11;
-    neto8->eh_folha = 1;
-    neto8->chaves[0] = 75;
-    neto8->valores[0] = 750;
-    neto8->numero_chaves = 1;
-    neto8->pai_offset = 3;
-    disk_write(arvore, neto8);
-
-    // Libera todos os nós da memória
-    liberaNo(raiz);
-    liberaNo(filho1);
-    liberaNo(filho2);
-    liberaNo(filho3);
-    liberaNo(neto1);
-    liberaNo(neto2);
-    liberaNo(neto3);
-    liberaNo(neto4);
-    liberaNo(neto5);
-    liberaNo(neto6);
-    liberaNo(neto7);
-    liberaNo(neto8);
-}
 
 void imprimeArvore(ArvoreB *arvore, int posicao, int nivel) {
     No *no = disk_read(arvore, posicao);

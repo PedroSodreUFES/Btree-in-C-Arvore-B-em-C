@@ -12,7 +12,7 @@ ArvoreB* criaArvoreB(int ordem, FILE* arquivoBinario);
 ArvoreB* insereArvore(ArvoreB* arvore, int chave, int valor);
 
 /* Remove uma chave da árvore. Retorna o valor associado ou -1 se não encontrado */
-int retiraArvore(ArvoreB* arvore, int chave);
+ArvoreB* retiraArvore(ArvoreB* arvore, int chave);
 
 /* Busca uma chave na árvore. Retorna o valor associado ou -1 se não encontrado */
 int buscaArvore(ArvoreB* arvore, int chave);

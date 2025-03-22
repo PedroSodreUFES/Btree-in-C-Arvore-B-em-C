@@ -75,16 +75,16 @@ int main(int argc, char **argv)
         else if (comando == 'R')
         {
             fscanf(input, "%d%*[^RBI]", &chave);
-            // aux = retiraArvore(sentinela, chave);
+            sentinela = retiraArvore(sentinela, chave);
         }
         else if (comando == 'B')
         {
             fscanf(input, "%d%*[^RBI]", &chave);
             int registro = buscaArvore(sentinela, chave);
             if (registro == -1) //Não encontrado
-                printf ("Chave não encontrada\n");
+                printf ("O REGISTRO NAO ESTA NA ARVORE!\n");
             else
-                printf ("Chave encontrada: %d\n", registro);
+                printf ("O REGISTRO ESTA NA ARVORE!\n");
         }
         else
         {
