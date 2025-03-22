@@ -82,9 +82,9 @@ int main(int argc, char **argv)
             fscanf(input, "%d%*[^RBI]", &chave);
             int registro = buscaArvore(sentinela, chave);
             if (registro == -1) //Não encontrado
-                printf ("O REGISTRO NAO ESTA NA ARVORE!\n");
+                fprintf (output, "O REGISTRO NAO ESTA NA ARVORE!\n");
             else
-                printf ("O REGISTRO ESTA NA ARVORE!\n");
+                fprintf (output, "O REGISTRO ESTA NA ARVORE!\n");
         }
         else
         {
