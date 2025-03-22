@@ -79,7 +79,7 @@ int main(int argc, char **argv)
         else if (comando == 'R')
         {
             fscanf(input, "%d%*[^RBI]", &chave);
-            // aux = retiraArvore(sentinela, chave);
+            sentinela = retiraArvore(sentinela, chave);
         }
         else if (comando == 'B')
         {

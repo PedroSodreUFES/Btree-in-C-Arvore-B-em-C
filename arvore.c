@@ -359,6 +359,296 @@ void buscaNo(ArvoreB *arv, int chave)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// REMOVE //
+
+// Função para remover uma chave da árvore B
+ArvoreB *retiraArvore(ArvoreB *sentinela, int chave) {
+    No *raiz = disk_read(sentinela, sentinela->offsetRaiz);
+    sentinela = removeChave(sentinela, raiz, chave);
+    liberaNo(raiz);
+    return sentinela;
+}
+
+// Função recursiva para remover uma chave
+ArvoreB *removeChave(ArvoreB *sentinela, No *no, int chave) {
+    int i = 0;
+    while (i < no->numero_chaves && chave > no->chaves[i]) {
+        i++;
+    }
+
+    // Caso 1: A chave está no nó atual
+    if (i < no->numero_chaves && chave == no->chaves[i]) {
+        if (no->eh_folha == '1') {
+            // Caso 1a: A chave está em um nó folha
+            for (int j = i; j < no->numero_chaves - 1; j++) {
+                no->chaves[j] = no->chaves[j + 1];
+                no->valores[j] = no->valores[j + 1];
+            }
+            no->numero_chaves--;
+            disk_write(sentinela, no);
+
+            if (no->numero_chaves < (sentinela->ordem - 1) / 2) {
+                // Tratar underflow
+                sentinela = trataUnderflow(sentinela, no);
+            }
+        } else {
+            // Caso 1b: A chave está em um nó interno
+            No *filhoEsq = disk_read(sentinela, no->filhos[i]);
+            No *filhoDir = disk_read(sentinela, no->filhos[i + 1]);
+
+            if (filhoEsq->numero_chaves > (sentinela->ordem - 1) / 2) {
+                // Substituir pelo predecessor
+                int pred = getPredecessor(sentinela, filhoEsq);
+                no->chaves[i] = pred;
+                disk_write(sentinela, no);
+                sentinela = removeChave(sentinela, filhoEsq, pred);
+            } else if (filhoDir->numero_chaves > (sentinela->ordem - 1) / 2) {
+                // Substituir pelo sucessor
+                int succ = getSucessor(sentinela, filhoDir);
+                no->chaves[i] = succ;
+                disk_write(sentinela, no);
+                sentinela = removeChave(sentinela, filhoDir, succ);
+            } else {
+                // Fundir os filhos e remover a chave
+                sentinela = fundeNos(sentinela, no, i);
+                sentinela = removeChave(sentinela, filhoEsq, chave);
+            }
+            liberaNo(filhoEsq);
+            liberaNo(filhoDir);
+        }
+    } else {
+        // Caso 2: A chave não está no nó atual
+        if (no->eh_folha == '1') {
+            // A chave não existe na árvore
+            return sentinela;
+        }
+
+        No *filho = disk_read(sentinela, no->filhos[i]);
+        if (filho->numero_chaves == (sentinela->ordem - 1) / 2) {
+            // Garantir que o filho tenha pelo menos o mínimo de chaves
+            sentinela = garanteMinimo(sentinela, no, i);
+            filho = disk_read(sentinela, no->filhos[i]);
+        }
+        sentinela = removeChave(sentinela, filho, chave);
+        liberaNo(filho);
+    }
+
+    return sentinela;
+}
+
+// Função para tratar underflow em um nó
+ArvoreB *trataUnderflow(ArvoreB *sentinela, No *no) {
+    if (no->pai_offset == -1) {
+        // Caso especial: nó é a raiz
+        if (no->numero_chaves == 0) {
+            // A raiz ficou vazia, atualizar a raiz
+            sentinela->offsetRaiz = no->filhos[0];
+            liberaNo(no);
+        }
+        return sentinela;
+    }
+
+    No *pai = disk_read(sentinela, no->pai_offset);
+    int idx = 0;
+    while (idx < pai->numero_chaves && pai->filhos[idx] != no->posicao_arq_binario) {
+        idx++;
+    }
+
+    // Tentar emprestar do irmão esquerdo
+    if (idx > 0) {
+        No *irmaoEsq = disk_read(sentinela, pai->filhos[idx - 1]);
+        if (irmaoEsq->numero_chaves > (sentinela->ordem - 1) / 2) {
+            // Emprestar do irmão esquerdo
+            for (int i = no->numero_chaves; i > 0; i--) {
+                no->chaves[i] = no->chaves[i - 1];
+                no->valores[i] = no->valores[i - 1];
+            }
+            no->chaves[0] = pai->chaves[idx - 1];
+            no->valores[0] = pai->valores[idx - 1];
+            no->numero_chaves++;
+
+            pai->chaves[idx - 1] = irmaoEsq->chaves[irmaoEsq->numero_chaves - 1];
+            pai->valores[idx - 1] = irmaoEsq->valores[irmaoEsq->numero_chaves - 1];
+            irmaoEsq->numero_chaves--;
+
+            disk_write(sentinela, no);
+            disk_write(sentinela, pai);
+            disk_write(sentinela, irmaoEsq);
+            liberaNo(irmaoEsq);
+            return sentinela;
+        }
+        liberaNo(irmaoEsq);
+    }
+
+    // Tentar emprestar do irmão direito
+    if (idx < pai->numero_chaves) {
+        No *irmaoDir = disk_read(sentinela, pai->filhos[idx + 1]);
+        if (irmaoDir->numero_chaves > (sentinela->ordem - 1) / 2) {
+            // Emprestar do irmão direito
+            no->chaves[no->numero_chaves] = pai->chaves[idx];
+            no->valores[no->numero_chaves] = pai->valores[idx];
+            no->numero_chaves++;
+
+            pai->chaves[idx] = irmaoDir->chaves[0];
+            pai->valores[idx] = irmaoDir->valores[0];
+
+            for (int i = 0; i < irmaoDir->numero_chaves - 1; i++) {
+                irmaoDir->chaves[i] = irmaoDir->chaves[i + 1];
+                irmaoDir->valores[i] = irmaoDir->valores[i + 1];
+            }
+            irmaoDir->numero_chaves--;
+
+            disk_write(sentinela, no);
+            disk_write(sentinela, pai);
+            disk_write(sentinela, irmaoDir);
+            liberaNo(irmaoDir);
+            return sentinela;
+        }
+        liberaNo(irmaoDir);
+    }
+
+    // Fundir com um irmão
+    if (idx > 0) {
+        // Fundir com o irmão esquerdo
+        sentinela = fundeNos(sentinela, pai, idx - 1);
+    } else {
+        // Fundir com o irmão direito
+        sentinela = fundeNos(sentinela, pai, idx);
+    }
+
+    liberaNo(pai);
+    return sentinela;
+}
+
+// Função para fundir dois nós
+ArvoreB *fundeNos(ArvoreB *sentinela, No *pai, int idx) {
+    No *noEsq = disk_read(sentinela, pai->filhos[idx]);
+    No *noDir = disk_read(sentinela, pai->filhos[idx + 1]);
+
+    // Mover a chave do pai para o nó esquerdo
+    noEsq->chaves[noEsq->numero_chaves] = pai->chaves[idx];
+    noEsq->valores[noEsq->numero_chaves] = pai->valores[idx];
+    noEsq->numero_chaves++;
+
+    // Copiar chaves e valores do nó direito para o nó esquerdo
+    for (int i = 0; i < noDir->numero_chaves; i++) {
+        noEsq->chaves[noEsq->numero_chaves + i] = noDir->chaves[i];
+        noEsq->valores[noEsq->numero_chaves + i] = noDir->valores[i];
+    }
+    noEsq->numero_chaves += noDir->numero_chaves;
+
+    // Atualizar o pai
+    for (int i = idx; i < pai->numero_chaves - 1; i++) {
+        pai->chaves[i] = pai->chaves[i + 1];
+        pai->valores[i] = pai->valores[i + 1];
+        pai->filhos[i + 1] = pai->filhos[i + 2];
+    }
+    pai->numero_chaves--;
+
+    disk_write(sentinela, noEsq);
+    disk_write(sentinela, pai);
+    disk_write(sentinela, noDir);
+
+    liberaNo(noDir);
+    return sentinela;
+}
+
+// Função para garantir que um nó tenha pelo menos o mínimo de chaves
+ArvoreB *garanteMinimo(ArvoreB *sentinela, No *pai, int idx) {
+    No *no = disk_read(sentinela, pai->filhos[idx]);
+
+    if (no->numero_chaves >= (sentinela->ordem - 1) / 2) {
+        // O nó já tem chaves suficientes
+        liberaNo(no);
+        return sentinela;
+    }
+
+    // Tentar emprestar do irmão esquerdo
+    if (idx > 0) {
+        No *irmaoEsq = disk_read(sentinela, pai->filhos[idx - 1]);
+        if (irmaoEsq->numero_chaves > (sentinela->ordem - 1) / 2) {
+            // Emprestar do irmão esquerdo
+            for (int i = no->numero_chaves; i > 0; i--) {
+                no->chaves[i] = no->chaves[i - 1];
+                no->valores[i] = no->valores[i - 1];
+            }
+            no->chaves[0] = pai->chaves[idx - 1];
+            no->valores[0] = pai->valores[idx - 1];
+            no->numero_chaves++;
+
+            pai->chaves[idx - 1] = irmaoEsq->chaves[irmaoEsq->numero_chaves - 1];
+            pai->valores[idx - 1] = irmaoEsq->valores[irmaoEsq->numero_chaves - 1];
+            irmaoEsq->numero_chaves--;
+
+            disk_write(sentinela, no);
+            disk_write(sentinela, pai);
+            disk_write(sentinela, irmaoEsq);
+            liberaNo(irmaoEsq);
+            liberaNo(no);
+            return sentinela;
+        }
+        liberaNo(irmaoEsq);
+    }
+
+    // Tentar emprestar do irmão direito
+    if (idx < pai->numero_chaves) {
+        No *irmaoDir = disk_read(sentinela, pai->filhos[idx + 1]);
+        if (irmaoDir->numero_chaves > (sentinela->ordem - 1) / 2) {
+            // Emprestar do irmão direito
+            no->chaves[no->numero_chaves] = pai->chaves[idx];
+            no->valores[no->numero_chaves] = pai->valores[idx];
+            no->numero_chaves++;
+
+            pai->chaves[idx] = irmaoDir->chaves[0];
+            pai->valores[idx] = irmaoDir->valores[0];
+
+            for (int i = 0; i < irmaoDir->numero_chaves - 1; i++) {
+                irmaoDir->chaves[i] = irmaoDir->chaves[i + 1];
+                irmaoDir->valores[i] = irmaoDir->valores[i + 1];
+            }
+            irmaoDir->numero_chaves--;
+
+            disk_write(sentinela, no);
+            disk_write(sentinela, pai);
+            disk_write(sentinela, irmaoDir);
+            liberaNo(irmaoDir);
+            liberaNo(no);
+            return sentinela;
+        }
+        liberaNo(irmaoDir);
+    }
+
+    // Fundir com um irmão
+    if (idx > 0) {
+        // Fundir com o irmão esquerdo
+        sentinela = fundeNos(sentinela, pai, idx - 1);
+    } else {
+        // Fundir com o irmão direito
+        sentinela = fundeNos(sentinela, pai, idx);
+    }
+
+    liberaNo(no);
+    return sentinela;
+}
+
+// Função para obter o predecessor de uma chave
+int getPredecessor(ArvoreB *sentinela, No *no) {
+    while (no->eh_folha == '0') {
+        no = disk_read(sentinela, no->filhos[no->numero_chaves]);
+    }
+    return no->chaves[no->numero_chaves - 1];
+}
+
+// Função para obter o sucessor de uma chave
+int getSucessor(ArvoreB *sentinela, No *no) {
+    while (no->eh_folha == '0') {
+        no = disk_read(sentinela, no->filhos[0]);
+    }
+    return no->chaves[0];
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 /*----------------------------TEST FUNCTIONS----------------------------------------*/
 int getOffset(No *no)
 {
