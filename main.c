@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "arvore.h"
+#include "fila.h"
 
 /*
        -----------------------------
@@ -83,7 +84,7 @@ int main(int argc, char **argv)
         else if (comando == 'B')
         {
             fscanf(input, "%d%*[^RBI]", &chave);
-            // buscaArvore(sentinela, chave);
+            buscaNo(sentinela, chave);
         }
         else
         {
@@ -91,6 +92,8 @@ int main(int argc, char **argv)
             fscanf(input, "%*[^IRB]");
         }
     }
+
+    Fila *f = criaFila(sentinela);
 
     fclose(input);
     fclose(output);

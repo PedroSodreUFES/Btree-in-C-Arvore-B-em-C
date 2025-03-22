@@ -24,6 +24,10 @@ char getLotado(No *no);
 void liberaNo(No *no);
 void printaChaves(No *no);
 void printaValores(No *no);
+char retornaFolha(No *no);
+int *retornaFilhos(No *no);
+int retornaNumChaves(No *no);
+void buscaNo(ArvoreB *arv, int chave);
 
 /* FUNÇÕES DISK*/
 void disk_write(ArvoreB *arvore, No *node);

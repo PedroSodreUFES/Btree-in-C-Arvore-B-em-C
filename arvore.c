@@ -293,7 +293,6 @@ ArvoreB *divideArvore(int offset, ArvoreB *sentinela)
         pai->valores[i] = valor_do_meio;
         pai->filhos[i] = filhoMenor->posicao_arq_binario;
         pai->filhos[i + 1] = filhoMaior->posicao_arq_binario;
-
         pai->eh_folha = '0';
 
         filhoMaior->pai_offset = antiga_raiz->pai_offset;
@@ -320,6 +319,43 @@ ArvoreB *divideArvore(int offset, ArvoreB *sentinela)
     }
 }
 
+void buscaNo(ArvoreB *arv, int chave)
+{
+    No *aux = disk_read(arv, 0);
+    int i, offset;
+    while (1)
+    {
+        int achou = 0;
+        for (i = 0; i < aux->numero_chaves; i++)
+        {
+            if (chave == aux->chaves[i])
+            {
+                printf("O REGISTRO ESTA NA ARVORE!\n");
+                liberaNo(aux);
+                return;
+            }
+        }
+        if(aux->eh_folha == '1'){ printf("O REGISTRO NAO ESTA NA ARVORE!\n"); return; }
+        for (i = 0; i < aux->numero_chaves; i++)
+        {
+            if (chave < aux->chaves[i])
+            {
+                offset = aux->filhos[i];
+                liberaNo(aux);
+                aux = disk_read(arv, offset);
+                achou = 1;
+                break;
+            }
+        }
+        if (achou == 0)
+        {
+            offset = aux->filhos[aux->numero_chaves];
+            liberaNo(aux);
+            aux = disk_read(arv, offset);
+        }
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /*----------------------------TEST FUNCTIONS----------------------------------------*/
@@ -338,7 +374,6 @@ void printaChaves(No *no)
     for (int i = 0; i < no->numero_chaves; i++)
     {
         printf("%d ", no->chaves[i]);
-        printf("pao\n");
     }
     printf("\n");
 }
@@ -408,6 +443,21 @@ void disk_write(ArvoreB *arvore, No *node)
     fwrite(node->valores, sizeof(int), ordem, arquivo_bin);
     fwrite(node->filhos, sizeof(int), ordem + 1, arquivo_bin);
     fflush(arquivo_bin);
+}
+
+char retornaFolha(No *no)
+{
+    return no->eh_folha;
+}
+
+int *retornaFilhos(No *no)
+{
+    return no->filhos;
+}
+
+int retornaNumChaves(No *no)
+{
+    return no->numero_chaves;
 }
 
 void teste()
