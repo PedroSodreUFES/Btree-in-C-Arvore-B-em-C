@@ -58,9 +58,6 @@ int main(int argc, char **argv)
     fscanf(input, "%d%*[^IBR]", &numero_de_comandos);
 
     ArvoreB *sentinela = criaArvoreB(ordem_da_arvore, binary);
-    No *raiz = criaNo(sentinela);
-    disk_write(sentinela, raiz);
-    liberaNo(raiz);
 
     // processa os comandos
     char comando;

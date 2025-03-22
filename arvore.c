@@ -63,6 +63,16 @@ ArvoreB *criaArvoreB(int ordem, FILE *binario)
 
 ArvoreB *insereArvore(ArvoreB *sentinela, int chave, int valor)
 {
+    if (sentinela->numero_nos == 0)
+    {
+        No *raiz = criaNo(sentinela);
+        raiz->chaves[0] = chave;
+        raiz->valores[0] = valor;
+        raiz->numero_chaves = 1;
+        disk_write(sentinela, raiz);
+        sentinela->offsetRaiz = raiz->posicao_arq_binario;
+        return sentinela;
+    }
     No *aux = disk_read(sentinela, 0);
     int i, offset;
     while (!aux->eh_folha)
