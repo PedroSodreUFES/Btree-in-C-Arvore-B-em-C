@@ -146,7 +146,8 @@ int buscaArvore(ArvoreB *arvore, int chave) {
 }
 
 int retiraArvore(ArvoreB *arvore, int chave) {
-    if (arvore->numero_nos == 0) return -1;
+    if (arvore->numero_nos == 0) 
+        return -1;
 
     No* raiz = disk_read(arvore, 0);
     int registro = removeChave(arvore, raiz, chave);
@@ -239,8 +240,8 @@ No *disk_read(ArvoreB *arvore, int posicao)
     fseek(arquivo_bin, posicao * arvore->tam_byte_node, SEEK_SET);
 
     fread(&numero_chaves, sizeof(int), 1, arquivo_bin);
-    fread(&eh_folha, sizeof(char), 1, arquivo_bin);
-    fread(&lotado, sizeof(char), 1, arquivo_bin);
+    fread(&eh_folha, sizeof(bool), 1, arquivo_bin);
+    fread(&lotado, sizeof(bool), 1, arquivo_bin);
     fread(&posicao_arq_binario, sizeof(int), 1, arquivo_bin);
     fread(&paiOffset, sizeof(int), 1, arquivo_bin);
     node->numero_chaves = numero_chaves;
@@ -273,7 +274,6 @@ void disk_write(ArvoreB *arvore, No *node)
     fwrite(node->filhos, sizeof(int), ordem + 1, arquivo_bin);
     fflush(arquivo_bin);
 }
-
 
 /*------------------------ Funções Inserção --------------------------*/
 
