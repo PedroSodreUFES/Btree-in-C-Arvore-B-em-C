@@ -335,7 +335,7 @@ void buscaNo(ArvoreB *arv, int chave)
                 return;
             }
         }
-        if(aux->eh_folha == '1'){ printf("O REGISTRO NAO ESTA NA ARVORE!\n"); return; }
+        if(aux->eh_folha == '1'){ printf("O REGISTRO NAO ESTA NA ARVORE!\n"); liberaNo(aux); return; }
         for (i = 0; i < aux->numero_chaves; i++)
         {
             if (chave < aux->chaves[i])
