@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <limits.h>
 #include <unistd.h>
+#include <math.h>
 
 /*------------------------ STRUCTS ------------------------*/
 struct no
@@ -181,12 +182,12 @@ ArvoreB *divideArvore(int offset, ArvoreB *sentinela)
         int i, k;
 
         // cria o nível acima
-        int chave_do_meio = antiga_raiz->chaves[(sentinela->ordem / 2) - 1];
-        int valor_do_meio = antiga_raiz->valores[(sentinela->ordem / 2) - 1];
+        int chave_do_meio = antiga_raiz->chaves[ceil((sentinela->ordem / 2)) - 1];
+        int valor_do_meio = antiga_raiz->valores[ceil((sentinela->ordem / 2)) - 1];
         No *filhoMenor = criaNo(sentinela);
         filhoMenor->numero_chaves = sentinela->ordem / 2 - 1;
 
-        for (i = 0; i < (sentinela->ordem / 2) - 1; i++)
+        for (i = 0; i < ceil((sentinela->ordem / 2)) - 1; i++)
         {
             filhoMenor->chaves[i] = antiga_raiz->chaves[i];
             filhoMenor->valores[i] = antiga_raiz->valores[i];
@@ -198,8 +199,8 @@ ArvoreB *divideArvore(int offset, ArvoreB *sentinela)
         filhoMenor->pai_offset = 0;
 
         No *filhoMaior = criaNo(sentinela);
-        filhoMaior->numero_chaves = sentinela->ordem - (sentinela->ordem / 2);
-        for (i = 0, k = sentinela->ordem / 2; k < antiga_raiz->numero_chaves; k++, i++)
+        filhoMaior->numero_chaves = sentinela->ordem - ceil((sentinela->ordem / 2));
+        for (i = 0, k = ceil(sentinela->ordem / 2); k < antiga_raiz->numero_chaves; k++, i++)
         {
             filhoMaior->chaves[i] = antiga_raiz->chaves[k];
             filhoMaior->valores[i] = antiga_raiz->valores[k];
@@ -237,12 +238,12 @@ ArvoreB *divideArvore(int offset, ArvoreB *sentinela)
     {
         int i, k;
         // recupera as chaves do meio
-        int chave_do_meio = antiga_raiz->chaves[(sentinela->ordem / 2) - 1];
-        int valor_do_meio = antiga_raiz->valores[(sentinela->ordem / 2) - 1];
+        int chave_do_meio = antiga_raiz->chaves[ceil((sentinela->ordem / 2)) - 1];
+        int valor_do_meio = antiga_raiz->valores[ceil((sentinela->ordem / 2)) - 1];
 
         No *filhoMenor = criaNo(sentinela);
         filhoMenor->numero_chaves = sentinela->ordem / 2 - 1;
-        for (i = 0; i < (sentinela->ordem / 2) - 1; i++)
+        for (i = 0; i < ceil((sentinela->ordem / 2)) - 1; i++)
         {
             filhoMenor->chaves[i] = antiga_raiz->chaves[i];
             filhoMenor->valores[i] = antiga_raiz->valores[i];
@@ -255,8 +256,8 @@ ArvoreB *divideArvore(int offset, ArvoreB *sentinela)
 
         // cria o nivel com a segunda metade:
         No *filhoMaior = criaNo(sentinela);
-        filhoMaior->numero_chaves = sentinela->ordem - (sentinela->ordem / 2);
-        for (i = 0, k = sentinela->ordem / 2; k < antiga_raiz->numero_chaves; k++, i++)
+        filhoMaior->numero_chaves = sentinela->ordem - ceil(sentinela->ordem / 2);
+        for (i = 0, k = ceil(sentinela->ordem / 2); k < antiga_raiz->numero_chaves; k++, i++)
         {
             filhoMaior->chaves[i] = antiga_raiz->chaves[k];
             filhoMaior->valores[i] = antiga_raiz->valores[k];
