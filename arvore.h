@@ -11,7 +11,7 @@ typedef struct no No;
 ArvoreB *criaArvoreB(int ordem, FILE *binario);
 ArvoreB *insereArvore(ArvoreB *sentinela, int chave, int valor);
 ArvoreB *divideArvore(int offset, ArvoreB *sentinela);
-int retiraArvore(ArvoreB *arvore, int chave); // PDF do professor não imprime nada na remoção, então é possível que possa ser void
+int retiraChave(ArvoreB *arvore, int chave); // PDF do professor não imprime nada na remoção, então é possível que possa ser void
 int retornaOffsetRaiz(ArvoreB *arv);
 void buscaNo(ArvoreB *arv, int chave);
 

@@ -406,8 +406,9 @@ void buscaNo(ArvoreB *arv, int chave)
     }
 }
 
-int retiraArvore(ArvoreB *arvore, int chave){
-    
+// se aumentar o prazo é mexer aqui
+int retiraChave(ArvoreB *arvore, int chave){
+    return 1;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -65,7 +65,7 @@ int main(int argc, char **argv)
 
     // processa os comandos
     char comando;
-    int chave, dado;
+    int chave, dado, removido;
 
     // no que vai receber o que for retirado
     for (int i = 0; i < numero_de_comandos; i++)
@@ -79,7 +79,13 @@ int main(int argc, char **argv)
         else if (comando == 'R')
         {
             fscanf(input, "%d%*[^RBI]", &chave);
-            raiz = retiraArvore(sentinela, chave);
+            removido = retiraChave(sentinela, chave);
+            if(removido == 0){
+                printf("A chave %d não foi removida pois nao se encontra na raiz!\n", chave);
+            } 
+            else {
+                printf("A chave %d foi removida da arvore!\n", chave);
+            }
         }
         else if (comando == 'B')
         {
