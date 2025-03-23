@@ -406,6 +406,10 @@ void buscaNo(ArvoreB *arv, int chave)
     }
 }
 
+int retiraArvore(ArvoreB *arvore, int chave){
+    
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /*----------------------------TEST FUNCTIONS----------------------------------------*/
@@ -513,42 +517,4 @@ int retornaNumChaves(No *no)
 int *retornaChaves(No *no)
 {
     return no->chaves;
-}
-
-void teste()
-{
-    FILE *bin = fopen("binario.bin", "w+b");
-    ArvoreB *arv = criaArvoreB(5, bin);
-    No *no1 = criaNo(arv);
-    No *no2 = criaNo(arv);
-    no1->eh_folha = 'a';
-    no1->lotado = 'b';
-    no1->pai_offset = 32;
-    no1->posicao_arq_binario = 0;
-
-    no2->numero_chaves = 5;
-    no1->numero_chaves = 5;
-
-    for (int i = 0; i < 6; i++)
-    {
-        no1->filhos[i] = i + 1;
-    }
-
-    for (int i = 0; i < 6; i++)
-    {
-        no2->filhos[i] = i + 3;
-    }
-
-    disk_write(arv, no1);
-    disk_write(arv, no2);
-
-    liberaNo(no1);
-    liberaNo(no2);
-
-    No *no3 = disk_read(arv, 0);
-    printaFilhos(no3);
-    no3 = disk_read(arv, 1);
-    printaFilhos(no3);
-    no3 = disk_read(arv, 0);
-    printaFilhos(no3);
 }

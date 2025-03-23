@@ -12,9 +12,8 @@ ArvoreB *criaArvoreB(int ordem, FILE *binario);
 ArvoreB *insereArvore(ArvoreB *sentinela, int chave, int valor);
 ArvoreB *divideArvore(int offset, ArvoreB *sentinela);
 int retiraArvore(ArvoreB *arvore, int chave); // PDF do professor não imprime nada na remoção, então é possível que possa ser void
-int buscaArvore(ArvoreB *arvore, int chave); //Retorna o conteúdo da chave (se não existir, retorna -1??) nao sei se terao registros negativos
-void printaResumo(ArvoreB *arvore);
 int retornaOffsetRaiz(ArvoreB *arv);
+void buscaNo(ArvoreB *arv, int chave);
 
 /* FUNÇÕES DE NÓ*/
 No *criaNo(ArvoreB *arv);
@@ -27,7 +26,6 @@ void printaValores(No *no);
 char retornaFolha(No *no);
 int *retornaFilhos(No *no);
 int retornaNumChaves(No *no);
-void buscaNo(ArvoreB *arv, int chave);
 int *retornaChaves(No *no);
 
 /* FUNÇÕES DISK*/
