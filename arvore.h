@@ -5,6 +5,8 @@
 
 typedef struct arvoreB ArvoreB;
 
+typedef struct no No;
+
 /* Cria uma nova árvore B com a ordem especificada */
 ArvoreB* criaArvoreB(int ordem, FILE* arquivoBinario);
 

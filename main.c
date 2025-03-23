@@ -92,7 +92,6 @@ int main(int argc, char **argv)
             printf("Comando inválido detectado!\nO comando %c não tem uma definicao!\n", comando);
             fscanf(input, "%*[^IRB]");
         }
-        printaChaves(disk_read(sentinela, 0));
     }
 
     imprimeFila(sentinela);
